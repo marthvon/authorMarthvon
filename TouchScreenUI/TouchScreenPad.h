@@ -1,10 +1,10 @@
 #ifndef TOUCH_SCREEN_PAD
 #define TOUCH_SCREEN_PAD
 
-#include "iControl.h"
+#include "TouchControl.h"
 
-class TouchScreenPad : public iControl {
-	GDCLASS(TouchScreenPad, iControl);
+class TouchScreenPad : public TouchControl {
+	GDCLASS(TouchScreenPad, TouchControl);
 
 public:
 	enum Direction {
@@ -45,7 +45,7 @@ protected:
 	void _update_cache_dirty();
 	bool is_update_pending();
 
-	void _notifications(int p_what);
+	void _notification(int p_what);
 	static void _bind_methods();
 
 	void _direction_changed();

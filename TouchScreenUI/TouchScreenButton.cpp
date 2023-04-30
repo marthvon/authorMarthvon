@@ -1,8 +1,9 @@
 #include "TouchScreenButton.h"
 
-#include "core/os/input_event.h"
+#include "core/input/input_event.h"
+#include "scene/main/window.h"
 
-void TouchScreenButton::notification(int p_what) {
+void TouchScreenButton::_notification(int p_what) {
     switch(p_what){
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PAUSED: {
@@ -46,11 +47,11 @@ void TouchScreenButton::_input(const Ref<InputEvent>& p_event) {
 	if (!is_inside_tree() || p_event->get_device() != 0)
 		return;
     
-    const InputEventScreenTouch* const st = Object::cast_to<InputEventScreenTouch>(p_event);
+    const InputEventScreenTouch* const st = Object::cast_to<InputEventScreenTouch>(*p_event);
 
     if(st) {
 		Point2 coord = get_global_transform_with_canvas().affine_inverse().xform(st->get_position());
-        const bool point_is_inside = iControl::has_point(coord) && (!radius || (coord - (get_size()/2.0)).length() <= radius );
+        const bool point_is_inside = TouchControl::has_point(coord) && (!radius || (coord - (get_size()/2.0)).length() <= radius );
         if(point_is_inside && get_finger_index() == -1 && st->is_pressed()) {
             _press(st->get_index());
         } else if (get_finger_index() == st->get_index() && (point_is_inside || !signal_only_when_released_inside)) {
@@ -64,29 +65,35 @@ void TouchScreenButton::_press(const int p_index) {
     if (action != StringName()) {
 	    Input::get_singleton()->action_press(action);
 		Ref<InputEventAction> iea;
-		iea.instance();
+		iea.instantiate();
 		iea->set_action(action);
 		iea->set_pressed(true);
-		get_tree()->input_event(iea);
+		get_viewport()->push_input(iea, true);
 	}
-    emit_signal("button_pressed");
+
+	emit_signal(SNAME("pressed"));
+	queue_redraw();
 }
 
 void TouchScreenButton::_release(const bool p_exiting_tree = false) {
     _set_finger_index(-1);
     if(p_exiting_tree) {
         _propagate_on_unpause = true;
+		if (action != StringName())
+			Input::get_singleton()->action_release(action);
         return;
     }
     if (action != StringName()) {
-	    Input::get_singleton()->action_press(action);
+	    Input::get_singleton()->action_release(action);
 	    Ref<InputEventAction> iea;
-	    iea.instance();
+	    iea.instantiate();
 	    iea->set_action(action);
 	    iea->set_pressed(false);
-	    get_tree()->input_event(iea);
+		get_viewport()->push_input(iea, true);
 	}
+
     emit_signal("button_released");
+	queue_redraw();
     //if(isAccumulate){
     //  emit_signal("button_released_with_time_accum", accum_t)
     //}
@@ -105,7 +112,7 @@ void TouchScreenButton::_bind_methods() {
 
     ClassDB::bind_method(D_METHOD("set_radius", "radius"), &TouchScreenButton::set_radius);
 	ClassDB::bind_method(D_METHOD("get_radius"), &TouchScreenButton::get_radius);
-    ADD_PROPERTY(PropertyInfo(Variant::REAL, "radius"), "set_radius", "get_radius");
+    ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius"), "set_radius", "get_radius");
 
     ClassDB::bind_method(D_METHOD("set_action", "action"), &TouchScreenButton::set_action);
 	ClassDB::bind_method(D_METHOD("get_action"), &TouchScreenButton::get_action);
@@ -117,14 +124,14 @@ void TouchScreenButton::_bind_methods() {
     */
     ClassDB::bind_method(D_METHOD("toggle_signal_release_inside", "inside"), &TouchScreenButton::toggle_signal_release_inside);
 	ClassDB::bind_method(D_METHOD("is_signal_release_inside"), &TouchScreenButton::is_signal_release_inside);
-    ADD_PROPERTY(PropertyInfo(Variant::bool, "signal_release_when_inside"), "set_action", "is_signal_release_inside");
+    ADD_PROPERTY(PropertyInfo(Variant::BOOL, "signal_release_when_inside"), "set_action", "is_signal_release_inside");
 
 	//ClassDB::bind_method(D_METHOD("get_held_delta_time"), &TouchScreenButton::get_held_delta_time);
 	ClassDB::bind_method(D_METHOD("is_held"), &TouchScreenButton::is_held);
 
     ADD_SIGNAL(MethodInfo("button_pressed"));
     ADD_SIGNAL(MethodInfo("button_released"));
-    ADD_SIGNAL(MethodInfo("button_released_with_time_accum", PropertyInfo(Variant::REAL, "time")));
+    ADD_SIGNAL(MethodInfo("button_released_with_time_accum", PropertyInfo(Variant::FLOAT, "time")));
 }
 
 void TouchScreenButton::set_action(const StringName& p_name) {
@@ -133,16 +140,16 @@ void TouchScreenButton::set_action(const StringName& p_name) {
 const StringName TouchScreenButton::get_action() const {
     return action;
 }
-void TouchScreenButton::set_texture(const Ref<Texture>& p_texture){
+void TouchScreenButton::set_texture(const Ref<Texture2D>& p_texture){
     normal = p_texture;
 }
-Ref<Texture> TouchScreenButton::get_texture() const{
+Ref<Texture2D> TouchScreenButton::get_texture() const{
     return normal;
 }
-void TouchScreenButton::set_pressed_texture(const Ref<Texture>& p_texture){
+void TouchScreenButton::set_pressed_texture(const Ref<Texture2D>& p_texture){
     pressed = p_texture;
 }
-Ref<Texture> TouchScreenButton::get_pressed_texture() const {
+Ref<Texture2D> TouchScreenButton::get_pressed_texture() const {
     return pressed;
 }
 void TouchScreenButton::set_radius(const real_t p_radius){

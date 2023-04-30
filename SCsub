@@ -1,18 +1,18 @@
+#!/usr/bin/env python
 
 Import('env')
-Import("env_modules")
 
-env_modules.marthvon_sources = []
+env.marthvon_sources = []
 
 # Godot source files
-env_modules.add_source_files(env.marthvon_sources, "*.cpp")
+env.add_source_files(env.marthvon_sources, "*.cpp")
 
 # Chain load SCsubs
 #SConscript("Bitwise/SCsub")
 #SConscript("Character/SCsub")
 #SConscript("StrategyTRPG/SCsub")
-#SConscript("TouchScreenUI/SCsub")
+SConscript("TouchScreenUI/SCsub")
 
 # Build it all as a library
-lib = env_modules.add_library("marthvon", env_modules.marthvon_sources)
-env_modules.Prepend(LIBS=[lib])
+lib = env.add_library("marthvon", env.marthvon_sources)
+env.Prepend(LIBS=[lib])

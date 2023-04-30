@@ -1,8 +1,9 @@
 #ifndef TOUCH_SCREEN_JOYSTICK
 #define TOUCH_SCREEN_JOYSTICK
 
-#include "core/reference.h"
+#include "core/object/ref_counted.h"
 #include "TouchScreenPad.h"
+#include "scene/resources/texture.h"
 #include "scene/resources/circle_shape_2d.h"
 
 class TouchScreenJoystick : public TouchScreenPad {
@@ -27,11 +28,11 @@ private:
 
 		void _update_shape_points(const Point2& p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span);
 		void _draw(const RID& p_rid_to);
-	} * const shape;
+	} * shape;
 
 	struct Data {
 		struct TextureData {
-			Ref<Texture> texture = Ref<Texture>();
+			Ref<Texture2D> texture = Ref<Texture2D>();
 			Rect2 _position_rect = Rect2();
 			Vector2 scale = Vector2();
 
@@ -54,27 +55,27 @@ protected:
 	bool _set_single_direction_span(real_t p_span); // a radian of an angle, no more than 90 degrees
 	virtual Size2 get_minimum_size() const override;
 
-	void _notifications(int p_what);
+	void _notification(int p_what);
 	static void _bind_methods();
 
 public:
 	void set_radius(const float p_radius);
 	const float get_radius() const;
 
-	void set_texture(Ref<Texture>& p_texture);
-	Ref<Texture> get_texture() const;
+	void set_texture(Ref<Texture2D>& p_texture);
+	Ref<Texture2D> get_texture() const;
 
 	void set_texture_scale(const Vector2& p_scale);
 	const Vector2 get_texture_scale() const;
 
-	void set_texture_pressed(Ref<Texture> &p_texture_pressed);
-	Ref<Texture> get_texture_pressed() const;
+	void set_texture_pressed(Ref<Texture2D> &p_texture_pressed);
+	Ref<Texture2D> get_texture_pressed() const;
 
 	void set_texture_pressed_scale(const Vector2& p_scale);
 	const Vector2 get_texture_pressed_scale() const;
 
-	void set_stick_texture(Ref<Texture> &p_stick);
-	Ref<Texture> get_stick_texture() const;
+	void set_stick_texture(Ref<Texture2D> &p_stick);
+	Ref<Texture2D> get_stick_texture() const;
 
 	void set_stick_scale(const Vector2& p_scale);
 	Vector2 get_stick_scale() const;

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-Import("env_modules")
+Import("env")
 
-env_modules.add_source_files(env_modules.mavosan_sources, "*.cpp")
+env.add_source_files(env.marthvon_sources, "*.cpp")

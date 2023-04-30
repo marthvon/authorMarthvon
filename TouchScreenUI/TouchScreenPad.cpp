@@ -26,7 +26,7 @@ bool TouchScreenPad::_set_neutral_extent(const real_t p_extent) {
 	return true;
 }
 
-void TouchScreenPad::_notifications(int p_what) {
+void TouchScreenPad::_notification(int p_what) {
 	switch (p_what) {
 		case NOTIFICATION_EXIT_TREE:
 		case NOTIFICATION_PAUSED: {
@@ -71,8 +71,8 @@ void TouchScreenPad::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "centered"), "set_centered", "is_centered");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "center offset"), "set_center_offset", "get_center_offset");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "neutral extent"), "set_neutral_extent", "get_neutral_extent");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "one direction span"), "set_single_direction_span", "get_single_direction_span");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "neutral extent"), "set_neutral_extent", "get_neutral_extent");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "one direction span"), "set_single_direction_span", "get_single_direction_span");
 
 	ADD_SIGNAL(MethodInfo("direction_changed",
 		PropertyInfo(Variant::INT, "finger_pressed"),
@@ -108,7 +108,7 @@ void TouchScreenPad::_release(const bool is_pause_or_exit_tree) {
 void TouchScreenPad::set_centered(bool p_centered) {
 	centered = p_centered;
 	_update_cache_dirty();
-	update();
+	queue_redraw();
 }
 
 bool TouchScreenPad::is_centered() const {
@@ -121,7 +121,7 @@ void TouchScreenPad::set_neutral_extent(float p_extent) {
 	if(!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
 		return;	
 	_update_cache_dirty();
-	update();
+	queue_redraw();
 }
 
 float TouchScreenPad::get_neutral_extent() const {
@@ -137,7 +137,7 @@ void TouchScreenPad::set_center_offset(const Point2& p_offset) {
 	if (!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
 		return;
 	_update_cache_dirty();	
-	update();
+	queue_redraw();
 }
 
 Point2 TouchScreenPad::get_center_offset() const {
@@ -150,7 +150,7 @@ void TouchScreenPad::set_single_direction_span(float p_span) {
 	if (!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
 		return;
 	_update_cache_dirty();
-	update();
+	queue_redraw();
 }
 
 float TouchScreenPad::get_single_direction_span() const {

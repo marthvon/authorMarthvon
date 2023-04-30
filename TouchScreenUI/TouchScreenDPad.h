@@ -2,14 +2,15 @@
 #define TOUCH_SCREEN_DPAD
 
 #include "TouchScreenPad.h"
-#include "core/reference.h"
+#include "core/object/ref_counted.h"
+#include "scene/resources/texture.h"
 #include "scene/resources/convex_polygon_shape_2d.h"
 
 class TouchScreenDPad : public TouchScreenPad {
 	GDCLASS(TouchScreenDPad, TouchScreenPad);
 
 private:
-	Ref<Texture> texture;
+	Ref<Texture2D> texture;
 	float scale_to_rect = 1; // if 0 then take texture as size (texture is always squared)
 
 	Rect2 _position_rect = Rect2();
@@ -23,8 +24,8 @@ protected:
 	static void _bind_methods();
 
 public:
-	Ref<Texture> get_texture() const;
-	void set_texture(Ref<Texture> &p_texture);
+	Ref<Texture2D> get_texture() const;
+	void set_texture(Ref<Texture2D> &p_texture);
 
 	const float get_scale_to_rect() const;
 	void set_scale_to_rect(const float p_scale);

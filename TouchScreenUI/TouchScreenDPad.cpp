@@ -1,14 +1,14 @@
 #include "TouchScreenDPad.h"
 
 #include "core/os/os.h"
-#include "core/project_settings.h"
-#include "core/color.h"
-#include "core/vector.h"
-#include "core/os/input_event.h"
+#include "core/config/project_settings.h"
+#include "core/math/color.h"
+#include "core/templates/vector.h"
+#include "core/input/input_event.h"
 
 void TouchScreenDPad::_update_shape_points(const float& size) {
 	if(_shape_points.is_null())
-		_shape_points.instance();
+		_shape_points.instantiate();
 
 	const float s = size / 2.0;
 	const float dw = get_single_direction_span() * s;
@@ -31,36 +31,13 @@ void TouchScreenDPad::_update_shape_points(const float& size) {
 		for(int i = 0; i < 4; ++i)
 			points.set(i, cp + Point2(dw * (i % 3? 1 : -1), nzl * (i < 2? 1 : -1)));
 	}
-	/*
-	const bool isOctagon = get_single_direction_span() != get_neutral_extent();
-	if (isOctagon)
-		points.resize(8);
-	else
-		points.resize(4);
-	
-	points.set(0, Point2(-dw, nzl) + cp);
-	points.set(1, Point2(dw, nzl) + cp);
-
-	if (isOctagon) {
-		points.set(2, Point2(nzl, dw) + cp);
-		points.set(3, Point2(nzl, -dw) + cp);
-	}
-
-	points.set((isOctagon? 4: 2), Point2(dw, -nzl) + cp);
-	points.set((isOctagon? 5: 3), Point2(-dw, -nzl) + cp);
-
-	if (isOctagon) {
-		points.set(6, Point2(-nzl, -dw) + cp);
-		points.set(7, Point2(-nzl, dw) + cp);
-	}
-	*/
 	_shape_points->set_points(points);
 }
 
 void TouchScreenDPad::_draw_shape() {
 	Color pallete(0.7, 0.7, 0.7, 0.35);
-	if (ProjectSetting::get_singleton()->has_setting("debug/shapes/collision/shape_color"))
-		pallete = ProjectSetting::get_singleton()->get_setting("debug/shapes/collision/shape_color");
+	if (ProjectSettings::get_singleton()->has_setting("debug/shapes/collision/shape_color"))
+		pallete = ProjectSettings::get_singleton()->get_setting("debug/shapes/collision/shape_color");
 	const float min_size = MIN(_position_rect.size.x, _position_rect.size.y);
 	const Rect2 _rect(_position_rect.position + get_center_offset(), Size2(min_size, min_size));
 	draw_rect(_rect, pallete.lightened(0.15));
@@ -98,7 +75,7 @@ void TouchScreenDPad::_input(const Ref<InputEvent>& p_event) {
 	const InputEventScreenTouch *st = Object::cast_to<InputEventScreenTouch>(*p_event);
 	if (st) {
 		Point2 coord = get_global_transform_with_canvas().xform_inv(st->get_position());
-		if (iControl::has_point(coord) && get_finger_index() == -1 && st->is_pressed()) { //press inside Control.rect
+		if (TouchControl::has_point(coord) && get_finger_index() == -1 && st->is_pressed()) { //press inside Control.rect
 			_set_finger_index(st->get_index());
 			_update_direction_with_point(coord);
 			if(get_direction() == DIR_NEUTRAL)
@@ -111,7 +88,7 @@ void TouchScreenDPad::_input(const Ref<InputEvent>& p_event) {
 	const InputEventScreenDrag *sd = Object::cast_to<InputEventScreenDrag>(*p_event);
 	if (sd) {
 		Point2 coord = get_global_transform_with_canvas().affine_inverse().xform(sd->get_position());
-		if (is_passby_press() && get_finger_index() == -1 && iControl::has_point(coord)) { //passby press enter Control.rect
+		if (is_passby_press() && get_finger_index() == -1 && TouchControl::has_point(coord)) { //passby press enter Control.rect
 			_set_finger_index(sd->get_index());
 			_update_direction_with_point(coord);
 		} else if (get_finger_index() == sd->get_index()) //dragging dpad direction
@@ -162,7 +139,7 @@ bool TouchScreenDPad::_set_single_direction_span(real_t p_span) {
 Size2 TouchScreenDPad::get_minimum_size() const {
 	if (scale_to_rect <= 0.0 && texture.is_valid())
 		return texture->get_size();
-	return iControl::get_minimum_size().abs();
+	return TouchControl::get_minimum_size().abs();
 }
 
 void TouchScreenDPad::_notification(int p_what) {
@@ -197,17 +174,17 @@ void TouchScreenDPad::_update_cache() {
 		_update_shape_points(MIN(size.x, size.y));
 }
 
-Ref<Texture> TouchScreenDPad::get_texture() const {
+Ref<Texture2D> TouchScreenDPad::get_texture() const {
 	return texture;
 }
 
-void TouchScreenDPad::set_texture(Ref<Texture>& p_texture) {
+void TouchScreenDPad::set_texture(Ref<Texture2D>& p_texture) {
 	if(texture == p_texture)
 		return;
 	texture = p_texture;
 	_update_cache_dirty();
-	update();
-	minimum_size_changed();
+	queue_redraw();
+	update_minimum_size();
 }
 
 const float TouchScreenDPad::get_scale_to_rect() const {
@@ -215,12 +192,12 @@ const float TouchScreenDPad::get_scale_to_rect() const {
 }
 
 void TouchScreenDPad::set_scale_to_rect(const float p_scale) {
-	if(scale_to_rect == p_scale)
-		return
+	if (scale_to_rect == p_scale)
+		return;
 	scale_to_rect = MAX(p_scale, 0);
 	_update_cache_dirty();
-	update();
-	minimum_size_changed();
+	queue_redraw();
+	update_minimum_size();
 }
 
 void TouchScreenDPad::_bind_methods() {
@@ -233,7 +210,7 @@ void TouchScreenDPad::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("set_texture_scale", "scale"), &TouchScreenDPad::set_scale_to_rect);
 
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture"), "set_texture", "get_texture");
-	ADD_PROPERTY(PropertyInfo(Variant::REAL, "texture scale"), "set_texture_scale", "get_texture_scale");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "texture scale"), "set_texture_scale", "get_texture_scale");
 }
 
 TouchScreenDPad::TouchScreenDPad()

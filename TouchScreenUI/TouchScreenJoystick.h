@@ -22,11 +22,11 @@ private:
 		Vector<Point2> _deadzone_circle;
 		Vector<Vector<Point2>> _direction_zones;
 
-		void _add_to_canvas(const RID& p_rid_to, const Vector<Vector2>& p_points, const Vector<Color>& p_color);
+		void _add_to_canvas(const RID p_rid_to, const Vector<Vector2>& p_points, const Vector<Color>& p_color);
 	public:
 		Shape();
 
-		void _update_shape_points(const Point2& p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span);
+		void _update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span);
 		void _draw(const RID& p_rid_to);
 	} * shape;
 
@@ -59,43 +59,43 @@ protected:
 	static void _bind_methods();
 
 public:
-	void set_radius(const float p_radius);
-	const float get_radius() const;
+	void set_radius(float p_radius);
+	float get_radius() const;
 
-	void set_texture(Ref<Texture2D>& p_texture);
+	void set_texture(Ref<Texture2D> p_texture);
 	Ref<Texture2D> get_texture() const;
 
-	void set_texture_scale(const Vector2& p_scale);
-	const Vector2 get_texture_scale() const;
+	void set_texture_scale(Vector2 p_scale);
+	Vector2 get_texture_scale() const;
 
-	void set_texture_pressed(Ref<Texture2D> &p_texture_pressed);
+	void set_texture_pressed(Ref<Texture2D> p_texture_pressed);
 	Ref<Texture2D> get_texture_pressed() const;
 
-	void set_texture_pressed_scale(const Vector2& p_scale);
-	const Vector2 get_texture_pressed_scale() const;
+	void set_texture_pressed_scale(Vector2 p_scale);
+	Vector2 get_texture_pressed_scale() const;
 
-	void set_stick_texture(Ref<Texture2D> &p_stick);
+	void set_stick_texture(Ref<Texture2D> p_stick);
 	Ref<Texture2D> get_stick_texture() const;
 
-	void set_stick_scale(const Vector2& p_scale);
+	void set_stick_scale(Vector2 p_scale);
 	Vector2 get_stick_scale() const;
 
-	void set_show_mode(const ShowMode p_show_mode);
+	void set_show_mode(ShowMode p_show_mode);
 	ShowMode get_show_mode() const;
 
-	void set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos);
-	const bool is_normal_moved_to_touch_pos() const;
+	void set_normal_moved_to_touch_pos(bool p_move_normal_to_touch_pos);
+	bool is_normal_moved_to_touch_pos() const;
 
-	void set_stick_confined_inside(const bool p_confined_inside);
+	void set_stick_confined_inside(bool p_confined_inside);
 	bool is_stick_confined_inside() const;
 
 	TouchScreenJoystick();
 	~TouchScreenJoystick();
 private:
-	void _input(Ref<InputEvent> &p_event);
+	void _input(Ref<InputEvent> p_event);
 
-	bool _update_direction_with_point(Point2& p_point);
-	bool _update_center_with_point(Point2& p_point, const bool is_point_center);
+	bool _update_direction_with_point(Point2 p_point);
+	bool _update_center_with_point(Point2 p_point, const bool is_point_center);
 
 	void _update_cache();
 	void _update_texture_cache(Data::TextureData& p_data);

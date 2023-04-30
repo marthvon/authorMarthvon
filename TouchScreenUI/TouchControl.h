@@ -9,14 +9,14 @@ private:
 	int finger_pressed = -1;
 	bool passby_press = false;
 protected:
-	void _set_finger_index(const int p_finger_pressed);
+	void _set_finger_index(int p_finger_pressed);
 
 	static void _bind_methods();
 public:
 	int get_finger_index() const;
 
-	const bool is_passby_press() const;
-	void set_passby_press(const bool p_passby_press);
+	bool is_passby_press() const;
+	void set_passby_press(bool p_passby_press);
 
 	/**
 		Don't use the following functions of Control

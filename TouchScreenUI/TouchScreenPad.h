@@ -36,7 +36,7 @@ protected:
 	virtual bool _set_neutral_extent(const real_t p_extent);
 	virtual bool _set_single_direction_span(const real_t p_span);
 
-	void _set_center_point(const Point2 &p_center_point);
+	void _set_center_point(const Point2 p_center_point);
 	const Point2 _get_center_point() const;
 
 	void _set_direction(Direction p_direction);
@@ -55,7 +55,7 @@ public:
 	void set_centered(bool p_centered);
 	bool is_centered() const;
 
-	void set_center_offset(const Point2& p_offset);
+	void set_center_offset(Point2 p_offset);
 	Point2 get_center_offset() const;
 
 	void set_neutral_extent(float p_extent);

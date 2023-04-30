@@ -2,10 +2,11 @@
 
 Import('env')
 
-env.marthvon_sources = []
+#env.marthvon_sources = []
 
 # Godot source files
-env.add_source_files(env.marthvon_sources, "*.cpp")
+#env.add_source_files(env.marthvon_sources, "*.cpp")
+env.add_source_files(env.modules_sources, "*.cpp")
 
 # Chain load SCsubs
 #SConscript("Bitwise/SCsub")
@@ -14,5 +15,5 @@ env.add_source_files(env.marthvon_sources, "*.cpp")
 SConscript("TouchScreenUI/SCsub")
 
 # Build it all as a library
-lib = env.add_library("marthvon", env.marthvon_sources)
-env.Prepend(LIBS=[lib])
+#lib = env.add_library("marthvon", env.marthvon_sources)
+#env.Prepend(LIBS=[lib])

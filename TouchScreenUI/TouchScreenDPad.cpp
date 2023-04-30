@@ -6,7 +6,7 @@
 #include "core/templates/vector.h"
 #include "core/input/input_event.h"
 
-void TouchScreenDPad::_update_shape_points(const float& size) {
+void TouchScreenDPad::_update_shape_points(const float size) {
 	if(_shape_points.is_null())
 		_shape_points.instantiate();
 
@@ -65,7 +65,7 @@ void TouchScreenDPad::_draw_shape() {
 	_shape_points->draw(get_canvas_item(), pallete.darkened(0.15));
 }
 
-void TouchScreenDPad::_input(const Ref<InputEvent>& p_event) {
+void TouchScreenDPad::_input(const Ref<InputEvent> p_event) {
 	ERR_FAIL_COND(p_event.is_null());
 	ERR_FAIL_COND(!is_visible_in_tree());
 
@@ -96,7 +96,7 @@ void TouchScreenDPad::_input(const Ref<InputEvent>& p_event) {
 	}
 }
 
-void TouchScreenDPad::_update_direction_with_point(Point2& p_point) {
+void TouchScreenDPad::_update_direction_with_point(Point2 p_point) {
 	int result = DIR_NEUTRAL;
 	p_point -= (_get_center_point() + get_center_offset());
 	Direction xAxis = p_point.x > 0 ? DIR_RIGHT : DIR_LEFT;
@@ -178,7 +178,7 @@ Ref<Texture2D> TouchScreenDPad::get_texture() const {
 	return texture;
 }
 
-void TouchScreenDPad::set_texture(Ref<Texture2D>& p_texture) {
+void TouchScreenDPad::set_texture(Ref<Texture2D> p_texture) {
 	if(texture == p_texture)
 		return;
 	texture = p_texture;
@@ -187,7 +187,7 @@ void TouchScreenDPad::set_texture(Ref<Texture2D>& p_texture) {
 	update_minimum_size();
 }
 
-const float TouchScreenDPad::get_scale_to_rect() const {
+float TouchScreenDPad::get_scale_to_rect() const {
 	return scale_to_rect;
 }
 

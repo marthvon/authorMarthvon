@@ -4,7 +4,7 @@
 
 inline constexpr char* _direction_changed = "direction_changed"; 
 
-void TouchScreenPad::_set_center_point(const Point2 &p_center_point) {
+void TouchScreenPad::_set_center_point(const Point2 p_center_point) {
 	_center_point = p_center_point;
 }
 
@@ -67,7 +67,7 @@ void TouchScreenPad::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_single_direction_span"), &TouchScreenPad::get_single_direction_span);
 	ClassDB::bind_method(D_METHOD("set_single_direction_span", "span"), &TouchScreenPad::set_single_direction_span);
 
-	ClassDB::bind_method(MethodInfo("get_direction"), &TouchScreenPad::get_direction);
+	ClassDB::bind_method(D_METHOD("get_direction"), &TouchScreenPad::get_direction);
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "centered"), "set_centered", "is_centered");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "center offset"), "set_center_offset", "get_center_offset");
@@ -132,7 +132,7 @@ TouchScreenPad::Direction TouchScreenPad::get_direction() const {
 	return direction;
 }
 
-void TouchScreenPad::set_center_offset(const Point2& p_offset) {
+void TouchScreenPad::set_center_offset(Point2 p_offset) {
 	offset_center = p_offset;
 	if (!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
 		return;

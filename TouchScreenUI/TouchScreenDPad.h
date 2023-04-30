@@ -25,19 +25,19 @@ protected:
 
 public:
 	Ref<Texture2D> get_texture() const;
-	void set_texture(Ref<Texture2D> &p_texture);
+	void set_texture(Ref<Texture2D> p_texture);
 
-	const float get_scale_to_rect() const;
+	float get_scale_to_rect() const;
 	void set_scale_to_rect(const float p_scale);
 
 	TouchScreenDPad();
 private:
-	void _input(const Ref<InputEvent>& p_event);
-	void _update_direction_with_point(Point2& p_point);
+	void _input(const Ref<InputEvent> p_event);
+	void _update_direction_with_point(Point2 p_point);
 
 	void _update_cache();
 
-	void _update_shape_points(const float &size); //put in a struct const RID& p_rid_to, const real_t p_extent, const real_t p_span
+	void _update_shape_points(const float size); //put in a struct const RID& p_rid_to, const real_t p_extent, const real_t p_span
 	void _draw_shape();
 };
 

@@ -15,7 +15,7 @@
 #include "TouchScreenUI/TouchScreenJoystick.h"
 #include "TouchScreenUI/TouchScreenButton.h"
 
-void register_authorMavosan_types() {
+void initialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
 	//BaseStreamSignalStringNames::create();
 	//
 	//GDREGISTER_CLASS(BaseStream);
@@ -41,6 +41,6 @@ void register_authorMavosan_types() {
 	GDREGISTER_CLASS(TouchScreenButton);
 }
 
-void unregister_authorMavosan_types() {
+void uninitialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
 
 }

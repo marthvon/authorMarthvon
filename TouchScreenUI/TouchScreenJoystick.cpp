@@ -47,7 +47,7 @@ Size2 TouchScreenJoystick::get_minimum_size() const {
 	return rscale;
 }
 
-void TouchScreenJoystick::_input(Ref<InputEvent>& p_event) {
+void TouchScreenJoystick::_input(Ref<InputEvent> p_event) {
 	ERR_FAIL_COND(p_event.is_null());
 	ERR_FAIL_COND(!is_visible_in_tree());
 
@@ -81,14 +81,14 @@ void TouchScreenJoystick::_input(Ref<InputEvent>& p_event) {
 	}
 }
 
-bool TouchScreenJoystick::_update_center_with_point(Point2& p_point, const bool is_point_center){
+bool TouchScreenJoystick::_update_center_with_point(Point2 p_point, const bool is_point_center){
 	if((p_point - (_get_center_point() + get_center_offset())).length() > radius)
 		return false;
 	_touch_pos_on_initial_press = is_point_center? p_point : _get_center_point() + get_center_offset();
 	return true;
 }
 
-bool TouchScreenJoystick::_update_direction_with_point(Point2& p_point) {
+bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 	_current_touch_pos = p_point;
 
 	p_point -= normal_moved_to_touch_pos? _touch_pos_on_initial_press : (_get_center_point() + get_center_offset());
@@ -186,7 +186,7 @@ void TouchScreenJoystick::_update_texture_cache(TouchScreenJoystick::Data::Textu
 	p_data._position_rect = Rect2(offs, size);
 }
 
-void TouchScreenJoystick::Shape::_update_shape_points(const Point2& p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span) {
+void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span) {
 	const float rad90deg = Math_PI * 0.5;
 	const float angle = rad90deg - p_direction_span;
 	const float new_angle[4] =  { (Math_PI * 2.0) - (angle/2.0), (Math_PI * 0.5) - (angle/2.0), Math_PI - (angle/2.0), (Math_PI * 1.5) - (angle/2.0)};
@@ -302,7 +302,7 @@ void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to) {
 	}
 }
 
-void TouchScreenJoystick::Shape::_add_to_canvas(const RID& p_rid_to, const Vector<Vector2>& p_points, const Vector<Color>& p_color) {
+void TouchScreenJoystick::Shape::_add_to_canvas(const RID p_rid_to, const Vector<Vector2>& p_points, const Vector<Color>& p_color) {
 	RenderingServer::get_singleton()->canvas_item_add_polygon(p_rid_to, p_points, p_color);
 	if (
 #ifdef TOOLS_ENABLED
@@ -389,7 +389,7 @@ TouchScreenJoystick::ShowMode TouchScreenJoystick::get_show_mode() const {
 	return show_mode;
 }
 
-void TouchScreenJoystick::set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos) {
+void TouchScreenJoystick::set_normal_moved_to_touch_pos(bool p_move_normal_to_touch_pos) {
 	if(normal_moved_to_touch_pos == p_move_normal_to_touch_pos)
 		return;
 	normal_moved_to_touch_pos = p_move_normal_to_touch_pos;
@@ -397,11 +397,11 @@ void TouchScreenJoystick::set_normal_moved_to_touch_pos(const bool p_move_normal
 	if (get_finger_index() != -1) 
 		queue_redraw();	
 }
-const bool TouchScreenJoystick::is_normal_moved_to_touch_pos() const {
+bool TouchScreenJoystick::is_normal_moved_to_touch_pos() const {
 	return normal_moved_to_touch_pos;
 }
 
-void TouchScreenJoystick::set_radius(const float p_radius) {
+void TouchScreenJoystick::set_radius(float p_radius) {
 	if(radius == p_radius)
 		return;
 	radius = p_radius;
@@ -410,11 +410,11 @@ void TouchScreenJoystick::set_radius(const float p_radius) {
 		queue_redraw();
 	}
 }
-const float TouchScreenJoystick::get_radius() const {
+float TouchScreenJoystick::get_radius() const {
 	return radius;
 }
 
-void TouchScreenJoystick::set_stick_confined_inside(const bool p_confined_inside) {
+void TouchScreenJoystick::set_stick_confined_inside(bool p_confined_inside) {
 	if(stick_confined_inside == p_confined_inside)
 		return;
 	stick_confined_inside = p_confined_inside;
@@ -428,7 +428,7 @@ bool TouchScreenJoystick::is_stick_confined_inside() const {
 	return stick_confined_inside;
 }
 
-void TouchScreenJoystick::set_texture(Ref<Texture2D>& p_texture) {
+void TouchScreenJoystick::set_texture(Ref<Texture2D> p_texture) {
 	if(data.normal.texture == p_texture)
 		return;
 	data.normal.texture = p_texture;
@@ -440,7 +440,7 @@ void TouchScreenJoystick::set_texture(Ref<Texture2D>& p_texture) {
 Ref<Texture2D> TouchScreenJoystick::get_texture() const {
 	return data.normal.texture;
 }
-void TouchScreenJoystick::set_texture_scale(const Vector2& p_scale) {
+void TouchScreenJoystick::set_texture_scale(Vector2 p_scale) {
 	if(data.normal.scale == p_scale)
 		return;
 	data.normal.scale = p_scale;
@@ -449,10 +449,10 @@ void TouchScreenJoystick::set_texture_scale(const Vector2& p_scale) {
 	if (data.normal.texture.is_valid() && (get_finger_index() == -1 || (show_mode & 0b01)))
 		queue_redraw();
 }
-const Vector2 TouchScreenJoystick::get_texture_scale() const {
+Vector2 TouchScreenJoystick::get_texture_scale() const {
 	return data.normal.scale;
 }
-void TouchScreenJoystick::set_texture_pressed(Ref<Texture2D>& p_texture_pressed) {
+void TouchScreenJoystick::set_texture_pressed(Ref<Texture2D> p_texture_pressed) {
 	if(data.pressed.texture == p_texture_pressed)
 		return;
 	data.pressed.texture = p_texture_pressed;
@@ -464,7 +464,7 @@ void TouchScreenJoystick::set_texture_pressed(Ref<Texture2D>& p_texture_pressed)
 Ref<Texture2D> TouchScreenJoystick::get_texture_pressed() const {
 	return data.pressed.texture;
 }
-void TouchScreenJoystick::set_texture_pressed_scale(const Vector2& p_scale) {
+void TouchScreenJoystick::set_texture_pressed_scale(Vector2 p_scale) {
 	if(data.pressed.scale == p_scale) 
 		return;
 	data.pressed.scale = p_scale;
@@ -473,10 +473,10 @@ void TouchScreenJoystick::set_texture_pressed_scale(const Vector2& p_scale) {
 	if (data.pressed.texture.is_valid() && get_finger_index() != -1)
 		queue_redraw();
 }
-const Vector2 TouchScreenJoystick::get_texture_pressed_scale() const {
+Vector2 TouchScreenJoystick::get_texture_pressed_scale() const {
 	return data.pressed.scale;
 }
-void TouchScreenJoystick::set_stick_texture(Ref<Texture2D>& p_stick) {
+void TouchScreenJoystick::set_stick_texture(Ref<Texture2D> p_stick) {
 	if(data.stick.texture == p_stick)
 		return
 	data.stick.texture = p_stick;
@@ -488,7 +488,7 @@ void TouchScreenJoystick::set_stick_texture(Ref<Texture2D>& p_stick) {
 Ref<Texture2D> TouchScreenJoystick::get_stick_texture() const {
 	return data.stick.texture;
 }
-void TouchScreenJoystick::set_stick_scale(const Vector2& p_scale) {
+void TouchScreenJoystick::set_stick_scale(Vector2 p_scale) {
 	data.stick.scale = p_scale;
 	_update_texture_cache(data.stick);
 	update_minimum_size();

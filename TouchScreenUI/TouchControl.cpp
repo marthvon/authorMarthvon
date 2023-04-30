@@ -1,13 +1,10 @@
 #include "TouchControl.h"
 
 void TouchControl::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("update_minimum_size"), &TouchControl::update_minimum_size);
-
 	ClassDB::bind_method(D_METHOD("get_finger_index"), &TouchControl::get_finger_index);
 	ClassDB::bind_method(D_METHOD("is_passby_press"), &TouchControl::is_passby_press);
 	ClassDB::bind_method(D_METHOD("set_passby_press", "passby_press"), &TouchControl::set_passby_press);
 	
-	ADD_GROUP("Touch", "");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "passby press"), "set_passby_press", "is_passby_press");
 }
 

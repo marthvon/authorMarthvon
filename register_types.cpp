@@ -16,6 +16,9 @@
 #include "TouchScreenUI/TouchScreenButton.h"
 
 void initialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
+	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
+		return;
+	}
 	//BaseStreamSignalStringNames::create();
 	//
 	//GDREGISTER_CLASS(BaseStream);
@@ -42,5 +45,7 @@ void initialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
 }
 
 void uninitialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
-
+	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
+		return;
+	}
 }

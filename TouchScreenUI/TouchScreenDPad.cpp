@@ -11,13 +11,13 @@ void TouchScreenDPad::_update_shape_points(const float size) {
 		_shape_points.instantiate();
 
 	const float s = size / 2.0;
-	const float dw = get_single_direction_span() * s;
-	const float nzl = get_neutral_extent() * s;
+	const float dw = get_cardinal_direction_span() * s;
+	const float nzl = get_deadzone_extent() * s;
 
 	Point2 cp = _get_center_point() + get_center_offset();
 
 	Vector<Vector2> points;
-	if(get_single_direction_span() != get_neutral_extent()) {
+	if(get_cardinal_direction_span() != get_deadzone_extent()) {
 		points.resize(8);
 		for(int i = 0; i < 8; ++i) {
 			const float l = nzl * (i < 4? 1 : -1);
@@ -45,20 +45,20 @@ void TouchScreenDPad::_draw_shape() {
 	if (points.size() == 4) {
 		for (int i = 1; i < 4; i += 2)
 			for (int j = 0; i <= 2; j += 2) {
-				const Vector2& position = i / 3 ? _rect.position : _rect.size; //if 3 then pos else size
+				const Vector2 position = (i / 3 ? _rect.position : _rect.size + _rect.position); //if 3 then pos else size
 				if (((i / 3) + (j / 2)) % 2) //second [1][2]size.x(right) //third [3][0]pos.x(left)
-					draw_rect(Rect2(points[i], Size2(position[0], points[j][1]) - points[i]), pallete); //rect2(DR, size2(size.x, UR.y)) //rect2(UL,size2(pos.x,  DL.y))
+					draw_rect(Rect2(points[i], Size2(position.x, points[j].y) - points[i]), pallete); //rect2(DR, size2(size.x, UR.y)) //rect2(UL,size2(pos.x,  DL.y))
 				else //first [1][0]size.y(down) //fourth [3][2]pos.y(up)
-					draw_rect(Rect2(points[i], Size2(points[j][0], position[1]) - points[i]), pallete); //rect2(DR, size2(DL.x , size.y)) //rect2(UL,size2(UR.x, pos.y))
+					draw_rect(Rect2(points[i], Size2(points[j].x, position.y) - points[i]), pallete); //rect2(DR, size2(DL.x , size.y)) //rect2(UL,size2(UR.x, pos.y))
 			}
 	} else {
 		ERR_FAIL_COND(points.size() != 8);
 		for (int i = 1; i < 8; i += 2) { //1 3 5 7
-			const Vector2& position = (i / 4)? _rect.position : _rect.size; // {1,3: size} {5,7: pos}
+			const Vector2 position = (i / 4? _rect.position : _rect.size + _rect.position); // {1,3: size} {5,7: pos}
 			if ((i/2) % 2) //{3(right),7(left)}
-				draw_rect(Rect2(points[i], Size2(position[0], points[i - 1][1]) - points[i]), pallete); //rect(point[3], size(size.x, point[2].y)) //rect(point[7], size(pos.x, point[6].y))
+				draw_rect(Rect2(points[i], Size2(position.x, points[i - 1].y) - points[i]), pallete); //rect(point[3], size(size.x, point[2].y)) //rect(point[7], size(pos.x, point[6].y))
 			else  //{1(down),5(up)}
-				draw_rect(Rect2(points[i], Size2(points[i - 1][0], position[1]) - points[i]), pallete); //rect(point[1], size(point[0].x, size.y)) //rect(point[5], size(point[4].x, pos.y))
+				draw_rect(Rect2(points[i], Size2(points[i - 1].x, position.y) - points[i]), pallete); //rect(point[1], size(point[0].x, size.y)) //rect(point[5], size(point[4].x, pos.y))
 		}
 	}
 	_shape_points->draw(get_canvas_item(), pallete.darkened(0.15));
@@ -103,8 +103,8 @@ void TouchScreenDPad::_update_direction_with_point(Point2 p_point) {
 	const Point2 point_abs = p_point.abs();
 
 	const float s = MIN(_position_rect.size.x, _position_rect.size.y) / 2.0;
-	const float w = get_single_direction_span() * s;
-	const float l = get_neutral_extent() * s;
+	const float w = get_cardinal_direction_span() * s;
+	const float l = get_deadzone_extent() * s;
 		
 	if (point_abs.x >= (l - MIN(MAX(point_abs.y - w, 0.0), w)))
 		result |= xAxis;
@@ -117,28 +117,28 @@ void TouchScreenDPad::_update_direction_with_point(Point2 p_point) {
 	}
 }
 
-bool TouchScreenDPad::_set_neutral_extent(real_t p_extent) {
-	p_extent = MAX(p_extent, get_single_direction_span());
-	const float new_extent = MIN(0.9f, p_extent);
-	if(new_extent == get_neutral_extent())
+const bool TouchScreenDPad::_set_deadzone_extent(real_t p_extent) {
+	p_extent = MAX(p_extent, get_cardinal_direction_span());
+	p_extent = MIN(0.9f, p_extent);
+	if(p_extent == get_deadzone_extent())
 		return false;
-	return TouchScreenPad::_set_neutral_extent(new_extent);
+	return TouchScreenPad::_set_deadzone_extent(p_extent);
 }
 
-bool TouchScreenDPad::_set_single_direction_span(real_t p_span) {
+const bool TouchScreenDPad::_set_cardinal_direction_span(real_t p_span) {
 	p_span = MAX(p_span, 0.1f);
-	const float new_span = MIN(0.9f, p_span);
-	if (new_span == get_single_direction_span())
+	p_span = MIN(0.9f, p_span);
+	if (p_span == get_cardinal_direction_span())
 		return false;
-	TouchScreenPad::_set_single_direction_span(new_span);
-	set_neutral_extent( MAX(get_neutral_extent(), get_single_direction_span()) );
-	return true;
+	if(p_span > get_deadzone_extent())
+		set_deadzone_extent(p_span);
+	return TouchScreenPad::_set_cardinal_direction_span(p_span);
 }
 
 Size2 TouchScreenDPad::get_minimum_size() const {
 	if (scale_to_rect <= 0.0 && texture.is_valid())
 		return texture->get_size();
-	return TouchControl::get_minimum_size().abs();
+	return Control::get_minimum_size().abs();
 }
 
 void TouchScreenDPad::_notification(int p_what) {
@@ -151,7 +151,7 @@ void TouchScreenDPad::_notification(int p_what) {
 				_update_cache();
 			draw_texture_rect(texture, _position_rect);
 
-			if ((Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) && _shape_points.is_valid())
+			if ((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && _shape_points.is_valid())
 				_draw_shape();
 		} break;
 		case NOTIFICATION_RESIZED:
@@ -163,14 +163,15 @@ void TouchScreenDPad::_notification(int p_what) {
 void TouchScreenDPad::_update_cache() {
 	if(texture.is_null())
 		return;
-	const Size2 size = scale_to_rect > 0.0?  get_size() * scale_to_rect : texture->get_size();
-	const Point2 offs = is_centered()? (get_size() - size) / 2.0 : Point2(0, 0);
+	Size2 size = scale_to_rect > 0.0?  get_size() * scale_to_rect : texture->get_size();
+	size.x > size.y? size.x = size.y : size.y = size.x;
+	const Point2 offs = is_centered()? (get_size() - size) / 2.0f : Point2(0, 0);
 
-	_set_center_point((size / 2.0) + offs);
+	_set_center_point((size / 2.0f) + offs);
 	_position_rect = Rect2(offs, size);
 
-	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) 
-		_update_shape_points(MIN(size.x, size.y));
+	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) 
+		_update_shape_points(size.x);
 }
 
 Ref<Texture2D> TouchScreenDPad::get_texture() const {

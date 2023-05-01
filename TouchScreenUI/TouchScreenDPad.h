@@ -16,8 +16,8 @@ private:
 	Rect2 _position_rect = Rect2();
 	Ref<ConvexPolygonShape2D> _shape_points; // put in a struct then ifdef with tools enabled
 protected:
-	bool _set_neutral_extent(real_t p_extent) override; //an Octagon
-	bool _set_single_direction_span(real_t p_span) override; //a width for rect
+	const bool _set_deadzone_extent(real_t p_extent) override; //an Octagon
+	const bool _set_cardinal_direction_span(real_t p_span) override; //a width for rect
 	virtual Size2 get_minimum_size() const override;
 
 	void _notification(int p_what);

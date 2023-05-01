@@ -25,16 +25,16 @@ private:
 	Direction direction = DIR_NEUTRAL;
 	bool centered = true;
 	Point2 offset_center = Point2(0,0); //Doesn't affect texture
-	float neutral_extent;
-	float single_direction_span;
+	real_t deadzone_extent;
+	real_t cardinal_direction_span;
 
 	Point2 _center_point = Point2();
 	bool _propagate_on_unpause = false;
 	bool update_cache = false;
 
 protected:
-	virtual bool _set_neutral_extent(const real_t p_extent);
-	virtual bool _set_single_direction_span(const real_t p_span);
+	virtual const bool _set_deadzone_extent(real_t p_extent);
+	virtual const bool _set_cardinal_direction_span(real_t p_span);
 
 	void _set_center_point(const Point2 p_center_point);
 	const Point2 _get_center_point() const;
@@ -49,7 +49,7 @@ protected:
 	static void _bind_methods();
 
 	void _direction_changed();
-	void _release(const bool is_pause_or_exit_tree = false);
+	void _release(const bool is_pause = false);
 
 public:
 	void set_centered(bool p_centered);
@@ -57,16 +57,16 @@ public:
 
 	void set_center_offset(Point2 p_offset);
 	Point2 get_center_offset() const;
+	
+	void set_deadzone_extent(real_t p_extent);
+	real_t get_deadzone_extent() const;
 
-	void set_neutral_extent(float p_extent);
-	float get_neutral_extent() const;
-
-	void set_single_direction_span(float p_span);
-	float get_single_direction_span() const;
+	void set_cardinal_direction_span(real_t p_span);
+	real_t get_cardinal_direction_span() const;
 
 	Direction get_direction() const;
 
-	TouchScreenPad(float p_extent, float p_span);
+	TouchScreenPad(real_t p_extent, real_t p_span);
 };
 
 VARIANT_ENUM_CAST(TouchScreenPad::Direction);

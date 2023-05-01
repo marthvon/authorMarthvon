@@ -7,20 +7,20 @@
 #include "core/input/input_event.h"
 #include "core/config/project_settings.h"
 
-bool TouchScreenJoystick::_set_neutral_extent(real_t p_extent) {
+const bool TouchScreenJoystick::_set_deadzone_extent(real_t p_extent) {
 	p_extent = MAX(p_extent, 0.0);
-	const float new_extent = MIN(p_extent, radius);
-	if(new_extent == get_neutral_extent())
+	p_extent = MIN(p_extent, radius);
+	if(p_extent == get_deadzone_extent())
 		return false;
-	return TouchScreenPad::_set_neutral_extent(new_extent);
+	return TouchScreenPad::_set_deadzone_extent(p_extent);
 }
 
-bool TouchScreenJoystick::_set_single_direction_span(real_t p_span) {
+const bool TouchScreenJoystick::_set_cardinal_direction_span(real_t p_span) {
 	p_span = MAX(p_span, 0.0);
-	const float new_span = MIN(p_span, Math_PI * 0.5);
-	if (new_span == get_single_direction_span())
+	p_span = MIN(p_span, 0.5f * Math_PI);
+	if (p_span == get_cardinal_direction_span())
 		return false;
-	return TouchScreenPad::_set_single_direction_span(new_span);
+	return TouchScreenPad::_set_cardinal_direction_span(p_span);
 }
 
 Size2 TouchScreenJoystick::get_minimum_size() const {
@@ -96,8 +96,8 @@ bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 	Direction yAxis = p_point.y > 0 ? DIR_DOWN : DIR_UP;	
 
 	Direction temp = DIR_NEUTRAL;
-	if(p_point.length() > get_neutral_extent()){
-		const float theta = (get_single_direction_span() - (Math_PI * 0.5)) / 2.0;
+	if(p_point.length() > get_deadzone_extent()){
+		const float theta = (get_cardinal_direction_span() - (Math_PI * 0.5)) / 2.0;
 		const float omega = p_point.abs().angle();
 		if(omega < theta)
 			temp = (Direction)(xAxis);
@@ -147,7 +147,7 @@ void TouchScreenJoystick::_notification(int p_what) {
 					) 
 				);
 
-			if((Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) && shape)
+			if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape)
 				shape->_draw(get_canvas_item());
 		} break;
 		case NOTIFICATION_RESIZED:
@@ -172,10 +172,10 @@ void TouchScreenJoystick::_update_cache() {
 		_update_texture_cache(data.stick);
 	}
 
-	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) {
+	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) {
 		if(!shape)
 			shape = new TouchScreenJoystick::Shape();
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_neutral_extent(), get_single_direction_span());
+		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_deadzone_extent(), get_cardinal_direction_span());
 	}
 }
 
@@ -396,8 +396,8 @@ void TouchScreenJoystick::set_radius(float p_radius) {
 	if(radius == p_radius)
 		return;
 	radius = p_radius;
-	if((Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) && shape) {
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_neutral_extent(), get_single_direction_span());
+	if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape) {
+		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_deadzone_extent(), get_cardinal_direction_span());
 		queue_redraw();
 	}
 }

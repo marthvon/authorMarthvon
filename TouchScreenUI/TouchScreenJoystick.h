@@ -51,8 +51,8 @@ private:
 	Point2 _touch_pos_on_initial_press = Point2();
 	Point2 _current_touch_pos = Point2();
 protected:
-	bool _set_neutral_extent(real_t p_extent); // radius of a circle
-	bool _set_single_direction_span(real_t p_span); // a radian of an angle, no more than 90 degrees
+	const bool _set_deadzone_extent(real_t p_extent); // radius of a circle
+	const bool _set_cardinal_direction_span(real_t p_span); // a radian of an angle, no more than 90 degrees
 	virtual Size2 get_minimum_size() const override;
 
 	void _notification(int p_what);

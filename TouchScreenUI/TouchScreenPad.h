@@ -30,7 +30,7 @@ private:
 
 	Point2 _center_point = Point2();
 	bool _propagate_on_unpause = false;
-	bool update_pending = false;
+	bool update_cache = false;
 
 protected:
 	virtual bool _set_neutral_extent(const real_t p_extent);
@@ -43,7 +43,7 @@ protected:
 	//get_direction is a public function
 
 	void _update_cache_dirty();
-	bool is_update_pending();
+	bool is_update_cache();
 
 	void _notification(int p_what);
 	static void _bind_methods();

@@ -35,9 +35,8 @@ void TouchScreenDPad::_update_shape_points(const float size) {
 }
 
 void TouchScreenDPad::_draw_shape() {
-	Color pallete(0.7, 0.7, 0.7, 0.35);
-	if (ProjectSettings::get_singleton()->has_setting("debug/shapes/collision/shape_color"))
-		pallete = ProjectSettings::get_singleton()->get_setting("debug/shapes/collision/shape_color");
+	Color pallete = get_tree()->get_debug_collisions_color();
+
 	const float min_size = MIN(_position_rect.size.x, _position_rect.size.y);
 	const Rect2 _rect(_position_rect.position + get_center_offset(), Size2(min_size, min_size));
 	draw_rect(_rect, pallete.lightened(0.15));
@@ -65,17 +64,17 @@ void TouchScreenDPad::_draw_shape() {
 	_shape_points->draw(get_canvas_item(), pallete.darkened(0.15));
 }
 
-void TouchScreenDPad::_input(const Ref<InputEvent> p_event) {
+void TouchScreenDPad::input(const Ref<InputEvent>& p_event) {
 	ERR_FAIL_COND(p_event.is_null());
-	ERR_FAIL_COND(!is_visible_in_tree());
 
-	if (!is_inside_tree() || p_event->get_device() != 0)
+	if (!is_visible_in_tree()) {
 		return;
+	}
 
 	const InputEventScreenTouch *st = Object::cast_to<InputEventScreenTouch>(*p_event);
 	if (st) {
 		Point2 coord = get_global_transform_with_canvas().xform_inv(st->get_position());
-		if (TouchControl::has_point(coord) && get_finger_index() == -1 && st->is_pressed()) { //press inside Control.rect
+		if (Control::has_point(coord) && get_finger_index() == -1 && st->is_pressed()) { //press inside Control.rect
 			_set_finger_index(st->get_index());
 			_update_direction_with_point(coord);
 			if(get_direction() == DIR_NEUTRAL)
@@ -88,7 +87,7 @@ void TouchScreenDPad::_input(const Ref<InputEvent> p_event) {
 	const InputEventScreenDrag *sd = Object::cast_to<InputEventScreenDrag>(*p_event);
 	if (sd) {
 		Point2 coord = get_global_transform_with_canvas().affine_inverse().xform(sd->get_position());
-		if (is_passby_press() && get_finger_index() == -1 && TouchControl::has_point(coord)) { //passby press enter Control.rect
+		if (is_passby_press() && get_finger_index() == -1 && Control::has_point(coord)) { //passby press enter Control.rect
 			_set_finger_index(sd->get_index());
 			_update_direction_with_point(coord);
 		} else if (get_finger_index() == sd->get_index()) //dragging dpad direction
@@ -120,15 +119,15 @@ void TouchScreenDPad::_update_direction_with_point(Point2 p_point) {
 
 bool TouchScreenDPad::_set_neutral_extent(real_t p_extent) {
 	p_extent = MAX(p_extent, get_single_direction_span());
-	const float new_extent = MIN(0.9, p_extent);
+	const float new_extent = MIN(0.9f, p_extent);
 	if(new_extent == get_neutral_extent())
 		return false;
 	return TouchScreenPad::_set_neutral_extent(new_extent);
 }
 
 bool TouchScreenDPad::_set_single_direction_span(real_t p_span) {
-	p_span = MAX(p_span, 0.1);
-	const float new_span = MIN(0.9, p_span);
+	p_span = MAX(p_span, 0.1f);
+	const float new_span = MIN(0.9f, p_span);
 	if (new_span == get_single_direction_span())
 		return false;
 	TouchScreenPad::_set_single_direction_span(new_span);
@@ -148,11 +147,11 @@ void TouchScreenDPad::_notification(int p_what) {
 			if (texture.is_null()) {
 				return;
 			}
-			if(is_update_pending())
+			if(is_update_cache())
 				_update_cache();
 			draw_texture_rect(texture, _position_rect);
 
-			if (Engine::get_singleton()->is_editor_hint() && get_tree()->is_debugging_collisions_hint())
+			if ((Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) && _shape_points.is_valid())
 				_draw_shape();
 		} break;
 		case NOTIFICATION_RESIZED:
@@ -170,7 +169,7 @@ void TouchScreenDPad::_update_cache() {
 	_set_center_point((size / 2.0) + offs);
 	_position_rect = Rect2(offs, size);
 
-	if (Engine::get_singleton()->is_editor_hint() && get_tree()->is_debugging_collisions_hint()) 
+	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) 
 		_update_shape_points(MIN(size.x, size.y));
 }
 
@@ -201,8 +200,6 @@ void TouchScreenDPad::set_scale_to_rect(const float p_scale) {
 }
 
 void TouchScreenDPad::_bind_methods() {
-	ClassDB::bind_method(D_METHOD("_input", "event"), &TouchScreenDPad::_input);
-
 	ClassDB::bind_method(D_METHOD("get_texture"), &TouchScreenDPad::get_texture);
 	ClassDB::bind_method(D_METHOD("set_texture", "texture"), &TouchScreenDPad::set_texture);
 
@@ -215,7 +212,4 @@ void TouchScreenDPad::_bind_methods() {
 
 TouchScreenDPad::TouchScreenDPad()
 	: TouchScreenPad(0.65, 0.35)
-{
-	if (Engine::get_singleton()->is_editor_hint() && get_tree()->is_debugging_collisions_hint())
-		_shape_points = Ref<ConvexPolygonShape2D>(memnew(ConvexPolygonShape2D));
-}
+{}

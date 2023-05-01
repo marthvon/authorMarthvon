@@ -13,7 +13,7 @@
 #include "TouchScreenUI/TouchScreenPad.h"
 #include "TouchScreenUI/TouchScreenDPad.h"
 #include "TouchScreenUI/TouchScreenJoystick.h"
-#include "TouchScreenUI/TouchScreenButton.h"
+#include "TouchScreenUI/TouchButton.h"
 
 void initialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
 	if (p_level != MODULE_INITIALIZATION_LEVEL_SCENE) {
@@ -41,7 +41,7 @@ void initialize_authorMarthvon_module(ModuleInitializationLevel p_level) {
 	GDREGISTER_ABSTRACT_CLASS(TouchScreenPad);
 	GDREGISTER_CLASS(TouchScreenDPad);
 	GDREGISTER_CLASS(TouchScreenJoystick);
-	GDREGISTER_CLASS(TouchScreenButton);
+	GDREGISTER_CLASS(TouchButton);
 }
 
 void uninitialize_authorMarthvon_module(ModuleInitializationLevel p_level) {

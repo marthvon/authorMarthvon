@@ -118,10 +118,10 @@ bool TouchScreenPad::is_centered() const {
 void TouchScreenPad::set_neutral_extent(float p_extent) {
 	if (!_set_neutral_extent(p_extent))
 		return;
-	if(!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
-		return;	
-	_update_cache_dirty();
-	queue_redraw();
+	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) {
+		_update_cache_dirty();
+		queue_redraw();
+	}
 }
 
 float TouchScreenPad::get_neutral_extent() const {
@@ -134,10 +134,10 @@ TouchScreenPad::Direction TouchScreenPad::get_direction() const {
 
 void TouchScreenPad::set_center_offset(Point2 p_offset) {
 	offset_center = p_offset;
-	if (!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
-		return;
-	_update_cache_dirty();	
-	queue_redraw();
+	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) {
+		_update_cache_dirty();
+		queue_redraw();
+	}
 }
 
 Point2 TouchScreenPad::get_center_offset() const {
@@ -147,10 +147,10 @@ Point2 TouchScreenPad::get_center_offset() const {
 void TouchScreenPad::set_single_direction_span(float p_span) {
 	if(!_set_single_direction_span(p_span))
 		return;
-	if (!Engine::get_singleton()->is_editor_hint() || !get_tree()->is_debugging_collisions_hint())
-		return;
-	_update_cache_dirty();
-	queue_redraw();
+	if (Engine::get_singleton()->is_editor_hint() || get_tree()->is_debugging_collisions_hint()) {
+		_update_cache_dirty();
+		queue_redraw();
+	}
 }
 
 float TouchScreenPad::get_single_direction_span() const {
@@ -158,12 +158,13 @@ float TouchScreenPad::get_single_direction_span() const {
 }
 
 void TouchScreenPad::_update_cache_dirty() {
-	update_pending = true;
+	update_cache = true;
 }
-bool TouchScreenPad::is_update_pending() {
-	if(!update_pending)
+
+bool TouchScreenPad::is_update_cache() {
+	if(!update_cache)
 		return false;
-	update_pending = false;
+	update_cache = false;
 	return true;
 }
 

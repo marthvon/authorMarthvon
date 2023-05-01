@@ -6,8 +6,8 @@
 #include "scene/resources/texture.h"
 #include "scene/resources/circle_shape_2d.h"
 
-class TouchScreenButton : public TouchControl {
-	GDCLASS(TouchScreenButton, TouchControl);
+class TouchButton : public TouchControl {
+	GDCLASS(TouchButton, TouchControl);
 
 	StringName action;
 	real_t radius;
@@ -44,7 +44,7 @@ public:
 	//const real_t get_held_delta_time() const;
 	bool is_held() const;
 private:
-	virtual void _input(Ref<InputEvent> p_event);
+	virtual void input(const Ref<InputEvent>& p_event) override;
 	void _press(int p_index);
 	void _release(bool p_exiting_tree = false);
 };

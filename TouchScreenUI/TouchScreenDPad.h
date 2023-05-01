@@ -32,7 +32,7 @@ public:
 
 	TouchScreenDPad();
 private:
-	void _input(const Ref<InputEvent> p_event);
+	virtual void input(const Ref<InputEvent>& p_event) override;
 	void _update_direction_with_point(Point2 p_point);
 
 	void _update_cache();

@@ -92,7 +92,7 @@ public:
 	TouchScreenJoystick();
 	~TouchScreenJoystick();
 private:
-	void _input(Ref<InputEvent> p_event);
+	virtual void input(const Ref<InputEvent>& p_event) override;
 
 	bool _update_direction_with_point(Point2 p_point);
 	bool _update_center_with_point(Point2 p_point, const bool is_point_center);

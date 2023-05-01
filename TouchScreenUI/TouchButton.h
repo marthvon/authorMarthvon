@@ -10,7 +10,7 @@ class TouchButton : public TouchControl {
 	GDCLASS(TouchButton, TouchControl);
 
 	StringName action;
-	real_t radius;
+	real_t radius = 0.0;
 	//real_t accum_t; //should I keep this
 	Ref<Texture2D> normal;
 	Ref<Texture2D> pressed;

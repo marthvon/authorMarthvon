@@ -116,9 +116,6 @@ bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 
 void TouchScreenJoystick::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_ENTER_TREE: {
-			set_clip_contents(false);
-		} break;
 		case NOTIFICATION_DRAW: {
 			if(is_update_cache())
 				_update_cache();
@@ -147,7 +144,7 @@ void TouchScreenJoystick::_notification(int p_what) {
 					) 
 				);
 
-			if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape)
+			if ((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape)
 				shape->_draw(get_canvas_item());
 		} break;
 		case NOTIFICATION_RESIZED:
@@ -189,7 +186,7 @@ void TouchScreenJoystick::_update_texture_cache(TouchScreenJoystick::Data::Textu
 void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span) {
 	const float rad90deg = Math_PI * 0.5;
 	const float angle = rad90deg - p_direction_span;
-	const float new_angle[4] =  { (2.0f * Math_PI) - (angle/2.0f), (0.5f * Math_PI) - (angle/2.0f), Math_PI - (angle/2.0f), (1.5f * Math_PI) - (angle/2.0f)};
+	const float new_angle[4] =  { (2.0f * Math_PI) - (angle/2.0f), (0.5f * Math_PI) - (angle/2.0f), -(angle/2.0f) + Math_PI, (1.5f * Math_PI) - (angle/2.0f)};
 	const float end_angle[4] =  { (angle/2.0f),  (0.5f * Math_PI) + (angle/2.0f), (angle/2.0f) + Math_PI, (1.5f * Math_PI) + (angle/2.0f)};
 	unsigned int marks[8] = {0,0,0,0,0,0,0,0};
 	for (int i = 0, j = 0, k = 1; i < 24; i++) {

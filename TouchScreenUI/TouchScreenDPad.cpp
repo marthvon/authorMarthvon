@@ -45,7 +45,7 @@ void TouchScreenDPad::_draw_shape() {
 	if (points.size() == 4) {
 		for (int i = 1; i < 4; i += 2)
 			for (int j = 0; i <= 2; j += 2) {
-				const Vector2 position = (i / 3 ? _rect.position : _rect.size + _rect.position); //if 3 then pos else size
+				const Vector2 position = (i == 3 ? _rect.position : _rect.size + _rect.position); //if 3 then pos else size
 				if (((i / 3) + (j / 2)) % 2) //second [1][2]size.x(right) //third [3][0]pos.x(left)
 					draw_rect(Rect2(points[i], Size2(position.x, points[j].y) - points[i]), pallete); //rect2(DR, size2(size.x, UR.y)) //rect2(UL,size2(pos.x,  DL.y))
 				else //first [1][0]size.y(down) //fourth [3][2]pos.y(up)

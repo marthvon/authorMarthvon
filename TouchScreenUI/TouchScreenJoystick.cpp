@@ -217,7 +217,7 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 			const float theta = (angle_increments * i) - (angle/2.0);
 			points.set(i, Vector2(Math::cos(theta), Math::sin(theta)) * p_radius);
 		}
-		for(int i = 0; i < 4; ++i) {
+		for(int i = 0; i < 4; ++i) { // outer ring of circle
 			Vector<Point2> res;
 			const int mark_size = 1 + (i? marks[1 + i * 2] - marks[i * 2] : (marks[1] + 24 - marks[0]) % 24);
 			const int new_size = size + mark_size + 2;
@@ -229,8 +229,8 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 				else 
 					res.set(j, p_center + point * (i? Vector2(-1, -1) : Vector2(1, 1)) );
 			}
-			res.set(size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone));
-			for(int j = marks[i * 2], k = new_size - 1; j != marks[1 + i * 2] + 1; j = (j + 1) % 24) {
+			res.set(size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone)); // inner ring of the circle
+			for(int j = marks[i * 2], k = new_size - 1; j != mark_size; j = (j + 1) % 24) {
 				res.set(k, _deadzone_circle.get(j));
 				k--;
 			}
@@ -239,7 +239,7 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 		}
 	} else 
 		_direction_zones.set(0, Vector<Vector2>());
-	/*
+	
 	if (!(p_direction_span > CMP_EPSILON)) {
 		_direction_zones.set(4, Vector<Vector2>());
 		return;
@@ -266,13 +266,13 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 				res.set(j, p_center + point * (i? Vector2(-1, -1) : Vector2(1, 1)) );
 		}
 		res.set(size, p_center + (Vector2(Math::cos(new_angle[(i + 1) % 4]), Math::sin(new_angle[(i + 1) % 4])) * p_radius * p_deadzone));
-		for(int j = marks[1 + i * 2], k = new_size - 1; j != marks[(2 + i * 2) % 8] + 1; j = (j + 1) % 24) { 
+		for(int j = marks[1 + i * 2], k = new_size - 1; j != mark_size + 1; j = (j + 1) % 24) { 
 			res.set(k, _deadzone_circle.get(j));
 			k--;
 		}
 		res.set(new_size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone));
 	}
-	*/
+
 }
 
 void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to) {
@@ -408,7 +408,7 @@ void TouchScreenJoystick::set_texture(Ref<Texture2D> p_texture) {
 	data.normal.texture = p_texture;
 	update_minimum_size();
 	_update_texture_cache(data.normal);
-	if (p_texture.is_valid() && (get_finger_index() == -1 || (show_mode & 0b01))) 
+	if (get_finger_index() == -1 || (show_mode & 0b01))
 		queue_redraw();
 }
 Ref<Texture2D> TouchScreenJoystick::get_texture() const {
@@ -428,7 +428,7 @@ void TouchScreenJoystick::set_texture_pressed(Ref<Texture2D> p_texture_pressed) 
 	data.pressed.texture = p_texture_pressed;
 	update_minimum_size();
 	_update_texture_cache(data.pressed);
-	if (p_texture_pressed.is_valid() && get_finger_index() != -1)
+	if (get_finger_index() != -1)
 		queue_redraw();
 }
 Ref<Texture2D> TouchScreenJoystick::get_texture_pressed() const {
@@ -448,7 +448,7 @@ void TouchScreenJoystick::set_stick_texture(Ref<Texture2D> p_stick) {
 	data.stick.texture = p_stick;
 	update_minimum_size();
 	_update_texture_cache(data.stick);
-	if (p_stick.is_valid() && ((show_mode & 0b10) || get_finger_index() != -1))
+	if ((show_mode & 0b10) || get_finger_index() != -1)
 		queue_redraw();
 }
 Ref<Texture2D> TouchScreenJoystick::get_stick_texture() const {

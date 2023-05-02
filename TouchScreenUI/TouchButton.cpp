@@ -70,7 +70,7 @@ void TouchButton::_press(int p_index) {
 		get_viewport()->push_input(iea, true);
 	}
 
-	emit_signal(SNAME("pressed"));
+	emit_signal("button_pressed");
 	queue_redraw();
 }
 
@@ -92,10 +92,9 @@ void TouchButton::_release(bool p_exiting_tree) {
 	}
 
     emit_signal("button_released");
+	if (isAccumulate)
+		emit_signal("button_released_with_time_accum", accum_t);
 	queue_redraw();
-    //if(isAccumulate){
-    //  emit_signal("button_released_with_time_accum", accum_t)
-    //}
 }
 
 void TouchButton::_bind_methods() {
@@ -114,16 +113,16 @@ void TouchButton::_bind_methods() {
     ClassDB::bind_method(D_METHOD("set_action", "action"), &TouchButton::set_action);
 	ClassDB::bind_method(D_METHOD("get_action"), &TouchButton::get_action);
     ADD_PROPERTY(PropertyInfo(Variant::STRING, "action"), "set_action", "get_action");
-    /*
+
     ClassDB::bind_method(D_METHOD("toggle_accumulate_time", "accumulate"), &TouchButton::toggle_accumulate_time);
-	ClassDB::bind_method(D_METHOD("is_accumulate_time"), &TouchButton::is_accumulate);
+	ClassDB::bind_method(D_METHOD("is_accumulate_time"), &TouchButton::is_accumulate_time);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "accumulating"), "toggle_accumulate_time", "is_accumulate_time");
-    */
+
     ClassDB::bind_method(D_METHOD("toggle_signal_release_inside", "inside"), &TouchButton::toggle_signal_release_inside);
 	ClassDB::bind_method(D_METHOD("is_signal_release_inside"), &TouchButton::is_signal_release_inside);
     ADD_PROPERTY(PropertyInfo(Variant::BOOL, "signal_release_when_inside"), "set_action", "is_signal_release_inside");
 
-	//ClassDB::bind_method(D_METHOD("get_held_delta_time"), &TouchButton::get_held_delta_time);
+	ClassDB::bind_method(D_METHOD("get_held_time"), &TouchButton::get_held_time);
 	ClassDB::bind_method(D_METHOD("is_held"), &TouchButton::is_held);
 
     ADD_SIGNAL(MethodInfo("button_pressed"));
@@ -154,22 +153,22 @@ void TouchButton::set_radius(const real_t p_radius){
 }
 real_t TouchButton::get_radius() const{
     return radius;
-} /*
+}
 void TouchButton::toggle_accumulate_time(const bool p_accumulate){
     isAccumulate = p_accumulate;
 }
-const bool TouchButton::is_accumulate() const{
+bool TouchButton::is_accumulate_time() const{
     return isAccumulate;
-}*/
+}
 void TouchButton::toggle_signal_release_inside(const bool p_bool) {
     signal_only_when_released_inside = p_bool;
 }
 bool TouchButton::is_signal_release_inside() const {
     return signal_only_when_released_inside;
-}/*
-const real_t TouchButton::get_held_delta_time() const {
+}
+real_t TouchButton::get_held_time() const {
     return accum_t;
-}*/
+}
 bool TouchButton::is_held() const{
     return isHeld;
 }

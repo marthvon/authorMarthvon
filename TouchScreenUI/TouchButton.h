@@ -9,15 +9,15 @@
 class TouchButton : public TouchControl {
 	GDCLASS(TouchButton, TouchControl);
 
-	StringName action;
+	StringName action = "";
 	real_t radius = 0.0;
-	//real_t accum_t; //should I keep this
+	real_t accum_t = 0.0;
 	Ref<Texture2D> normal;
 	Ref<Texture2D> pressed;
 
 	bool _propagate_on_unpause = false;
 	bool signal_only_when_released_inside = true;
-	//bool isAccumulate = false;
+	bool isAccumulate = false;
 	bool isHeld = false;
 protected:
 	void _notification(int p_what);
@@ -38,10 +38,10 @@ public:
 	void toggle_signal_release_inside(bool p_bool);
 	bool is_signal_release_inside() const;
 
-	//void toggle_accumulate_time(const bool p_accumulate);
-	//const bool is_accumulate() const;
+	void toggle_accumulate_time(const bool p_accumulate);
+	bool is_accumulate_time() const;
 
-	//const real_t get_held_delta_time() const;
+	real_t get_held_time() const;
 	bool is_held() const;
 private:
 	virtual void input(const Ref<InputEvent>& p_event) override;

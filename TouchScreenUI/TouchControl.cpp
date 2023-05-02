@@ -22,5 +22,4 @@ bool TouchControl::is_passby_press() const {
 
 void TouchControl::set_passby_press(bool p_passby_press) {
 	passby_press = p_passby_press;
-	queue_redraw();
 }

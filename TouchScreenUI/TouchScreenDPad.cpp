@@ -17,19 +17,19 @@ void TouchScreenDPad::_update_shape_points(const float size) {
 	Point2 cp = _get_center_point() + get_center_offset();
 
 	Vector<Vector2> points;
-	if(get_cardinal_direction_span() != get_deadzone_extent()) {
-		points.resize(8);
-		for(int i = 0; i < 8; ++i) {
-			const float l = nzl * (i < 4? 1 : -1);
-			if((i / 2) % 2)
-				points.set(i, cp + Point2(l, dw * (i % 3? 1 : -1)));
-			else
-				points.set(i, cp + Point2(dw * (i % 5? 1 : -1), l));
-		}
-	} else {
+	if(get_cardinal_direction_span() == get_deadzone_extent()) {
 		points.resize(4);
 		for(int i = 0; i < 4; ++i)
 			points.set(i, cp + Point2(dw * (i % 3? 1 : -1), nzl * (i < 2? 1 : -1)));
+	} else {
+		points.resize(8);
+		for (int i = 0; i < 8; ++i) {
+			const float l = nzl * (i < 4 ? 1 : -1);
+			if ((i / 2) % 2)
+				points.set(i, cp + Point2(l, dw * (i % 3 ? 1 : -1)));
+			else
+				points.set(i, cp + Point2(dw * (i % 5 ? 1 : -1), l));
+		}
 	}
 	_shape_points->set_points(points);
 }
@@ -42,9 +42,9 @@ void TouchScreenDPad::_draw_shape() {
 	draw_rect(_rect, pallete.lightened(0.15));
 
 	const Vector<Vector2> points = _shape_points->get_points();
-	if (points.size() == 4) {
+	if (get_cardinal_direction_span() == get_deadzone_extent()) {
 		for (int i = 1; i < 4; i += 2)
-			for (int j = 0; i <= 2; j += 2) {
+			for (int j = 0; j <= 2; j += 2) {
 				const Vector2 position = (i == 3 ? _rect.position : _rect.size + _rect.position); //if 3 then pos else size
 				if (((i / 3) + (j / 2)) % 2) //second [1][2]size.x(right) //third [3][0]pos.x(left)
 					draw_rect(Rect2(points[i], Size2(position.x, points[j].y) - points[i]), pallete); //rect2(DR, size2(size.x, UR.y)) //rect2(UL,size2(pos.x,  DL.y))
@@ -52,7 +52,6 @@ void TouchScreenDPad::_draw_shape() {
 					draw_rect(Rect2(points[i], Size2(points[j].x, position.y) - points[i]), pallete); //rect2(DR, size2(DL.x , size.y)) //rect2(UL,size2(UR.x, pos.y))
 			}
 	} else {
-		ERR_FAIL_COND(points.size() != 8);
 		for (int i = 1; i < 8; i += 2) { //1 3 5 7
 			const Vector2 position = (i / 4? _rect.position : _rect.size + _rect.position); // {1,3: size} {5,7: pos}
 			if ((i/2) % 2) //{3(right),7(left)}
@@ -179,12 +178,10 @@ Ref<Texture2D> TouchScreenDPad::get_texture() const {
 }
 
 void TouchScreenDPad::set_texture(Ref<Texture2D> p_texture) {
-	if(texture == p_texture)
-		return;
 	texture = p_texture;
 	_update_cache_dirty();
-	queue_redraw();
 	update_minimum_size();
+	queue_redraw();
 }
 
 float TouchScreenDPad::get_scale_to_rect() const {
@@ -192,12 +189,10 @@ float TouchScreenDPad::get_scale_to_rect() const {
 }
 
 void TouchScreenDPad::set_scale_to_rect(const float p_scale) {
-	if (scale_to_rect == p_scale)
-		return;
 	scale_to_rect = MAX(p_scale, 0);
 	_update_cache_dirty();
-	queue_redraw();
 	update_minimum_size();
+	queue_redraw();
 }
 
 void TouchScreenDPad::_bind_methods() {
@@ -207,7 +202,7 @@ void TouchScreenDPad::_bind_methods() {
 	ClassDB::bind_method(D_METHOD("get_texture_scale"), &TouchScreenDPad::get_scale_to_rect);
 	ClassDB::bind_method(D_METHOD("set_texture_scale", "scale"), &TouchScreenDPad::set_scale_to_rect);
 
-	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture"), "set_texture", "get_texture");
+	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture2D"), "set_texture", "get_texture");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "texture scale"), "set_texture_scale", "get_texture_scale");
 }
 

@@ -192,11 +192,11 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 	for (int i = 0, j = 0, k = 1; i < 24; i++) {
 		const real_t theta = Math_PI * i / 12.0f;
 		_deadzone_circle.set(i, p_center + (Vector2(Math::cos(theta), Math::sin(theta)) * p_radius * p_deadzone)); // deadzone circle
-		if(j < 4 && (end_angle[j] - CMP_EPSILON) <= theta) { // up, right, down, left
+		if(j < 4 && end_angle[j] <= theta) { // up, right, down, left
 			marked_edges[1 + j * 2] = MIN(i - 1, 0);
 			j++;
 		}
-		if(k < 5 && (start_angle[k % 4] - CMP_EPSILON) <= theta) { // right, down, left, up
+		if(k < 5 && start_angle[k % 4] <= theta) { // right, down, left, up
 			marked_edges[(k % 4) * 2] = i - 1; 
 			k++;
 		}

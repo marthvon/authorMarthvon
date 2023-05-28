@@ -14,7 +14,9 @@ private:
 	float scale_to_rect = 1; // if 0 then take texture as size (texture is always squared)
 
 	Rect2 _position_rect = Rect2();
+#ifdef TOOLS_ENABLED
 	Ref<ConvexPolygonShape2D> _shape_points; // put in a struct then ifdef with tools enabled
+#endif
 protected:
 	const bool _set_deadzone_extent(real_t p_extent) override; //an Octagon
 	const bool _set_cardinal_direction_span(real_t p_span) override; //a width for rect
@@ -36,9 +38,10 @@ private:
 	void _update_direction_with_point(Point2 p_point);
 
 	void _update_cache();
-
+#ifdef TOOLS_ENABLED
 	void _update_shape_points(const float size); //put in a struct const RID& p_rid_to, const real_t p_extent, const real_t p_span
 	void _draw_shape();
+#endif
 };
 
 #endif

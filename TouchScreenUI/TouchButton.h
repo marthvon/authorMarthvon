@@ -15,7 +15,6 @@ class TouchButton : public TouchControl {
 	Ref<Texture2D> normal;
 	Ref<Texture2D> pressed;
 
-	bool _propagate_on_unpause = false;
 	bool signal_only_when_released_inside = true;
 	bool isAccumulate = false;
 	bool isHeld = false;
@@ -46,6 +45,7 @@ public:
 private:
 	virtual void input(const Ref<InputEvent>& p_event) override;
 	void _press(int p_index);
-	void _release(bool p_exiting_tree = false);
+	void _release();
+	void _reset();
 };
 #endif

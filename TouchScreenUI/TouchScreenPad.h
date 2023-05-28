@@ -49,7 +49,7 @@ protected:
 	static void _bind_methods();
 
 	void _direction_changed();
-	void _release(const bool is_pause = false);
+	void _release();
 
 public:
 	void set_centered(bool p_centered);

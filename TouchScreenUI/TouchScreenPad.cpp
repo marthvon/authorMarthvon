@@ -42,11 +42,14 @@ void TouchScreenPad::_notification(int p_what) {
 			_release();
 		break;
 		case NOTIFICATION_PAUSED:
-			_release(true);
+			set_process_input(false);
+			if(get_finger_index() != -1)
+				_propagate_on_unpause = true;
 		break;
 		case NOTIFICATION_UNPAUSED: {
+			set_process_input(true);
 			if (_propagate_on_unpause) {
-				emit_signal("direction_changed", get_finger_index(), Variant(direction));
+				_release();
 				_propagate_on_unpause = false;
 			}
 		} break;
@@ -54,12 +57,13 @@ void TouchScreenPad::_notification(int p_what) {
 			if (Engine::get_singleton()->is_editor_hint())
 				return;
 
-			if (!is_visible_in_tree()) {
+			if (!is_visible_in_tree()) 
 				set_process_input(false);
+			else {
+				set_process_input(true);
 				if (get_finger_index() != -1)
 					_release();
-			} else
-				set_process_input(true);
+			}
 		} break;
 	}
 
@@ -83,7 +87,7 @@ void TouchScreenPad::_bind_methods() {
 
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "centered"), "set_centered", "is_centered");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "center offset"), "set_center_offset", "get_center_offset");
-	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "neutral extent"), "set_deadzone_extent", "get_deadzone_extent");
+	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "deadzone extent"), "set_deadzone_extent", "get_deadzone_extent");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "direction span"), "set_cardinal_direction_span", "get_cardinal_direction_span");
 
 	ADD_SIGNAL(MethodInfo("direction_changed",
@@ -106,15 +110,10 @@ void TouchScreenPad::_direction_changed() {
 	emit_signal("direction_changed", Variant(get_finger_index()), Variant(direction));
 }
 
-void TouchScreenPad::_release(const bool is_pause) {
+void TouchScreenPad::_release() {
 	_set_finger_index(-1);
 	direction = DIR_NEUTRAL;
-	
-	if (!is_pause) {
-		emit_signal("direction_changed", Variant(get_finger_index()), Variant(direction));
-		return;
-	}
-	_propagate_on_unpause = true;
+	emit_signal("direction_changed", Variant(get_finger_index()), Variant(direction));
 }
 
 void TouchScreenPad::set_centered(bool p_centered) {

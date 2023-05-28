@@ -27,7 +27,7 @@ private:
 		Shape();
 
 		void _update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span);
-		void _draw(const RID& p_rid_to);
+		void _draw(const RID& p_rid_to, Color pallete);
 	} * shape;
 
 	struct Data {
@@ -41,7 +41,7 @@ private:
 
 		Data();
 	} data;
-	float radius = 0.0;
+	float radius = 1.0;
 	
 	ShowMode show_mode = SHOW_ALL_ALWAYS;
 	bool stick_confined_inside = false; //keep clip content false

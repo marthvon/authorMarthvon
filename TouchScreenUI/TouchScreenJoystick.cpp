@@ -17,7 +17,7 @@ const bool TouchScreenJoystick::_set_deadzone_extent(real_t p_extent) {
 
 const bool TouchScreenJoystick::_set_cardinal_direction_span(real_t p_span) {
 	p_span = MAX(p_span, 0.0);
-	p_span = MIN(p_span, 0.5f * Math_PI);
+	p_span = MIN(p_span, Math_PI * 0.5);
 	if (p_span == get_cardinal_direction_span())
 		return false;
 	return TouchScreenPad::_set_cardinal_direction_span(p_span);
@@ -97,12 +97,12 @@ bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 
 	Direction temp = DIR_NEUTRAL;
 	if(p_point.length() > get_deadzone_extent()){
-		const float theta = (get_cardinal_direction_span() - (Math_PI * 0.5)) / 2.0;
-		const float omega = p_point.abs().angle();
+		const real_t theta = (get_cardinal_direction_span() - (Math_PI * 0.5)) / 2.0;
+		const real_t omega = p_point.abs().angle();
 		if(omega < theta)
-			temp = (Direction)(xAxis);
+			temp = xAxis;
 		else if(omega > ((Math_PI * 0.5) - theta))
-			temp = (Direction)(yAxis);
+			temp = yAxis;
 		else
 			temp = (Direction)(xAxis | yAxis);
 	} 
@@ -120,7 +120,7 @@ void TouchScreenJoystick::_notification(int p_what) {
 			if(is_update_cache())
 				_update_cache();
 			
-			bool is_pressed = get_finger_index() != 1;
+			const bool is_pressed = get_finger_index() != -1;
 			if (data.normal.texture.is_valid() && ((show_mode & SHOW_STICK_AND_NORMAL_ON_TOUCH) || !is_pressed))
 				draw_texture_rect(
 					data.normal.texture, ( normal_moved_to_touch_pos && is_pressed? 
@@ -145,7 +145,7 @@ void TouchScreenJoystick::_notification(int p_what) {
 				);
 
 			if ((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape)
-				shape->_draw(get_canvas_item());
+				shape->_draw(get_canvas_item(), get_tree()->get_debug_collisions_color());
 		} break;
 		case NOTIFICATION_RESIZED:
 			_update_cache();
@@ -157,22 +157,18 @@ void TouchScreenJoystick::_update_cache() {
 	if(is_centered())
 		_set_center_point(get_size() / 2.0);
 	else {
-		const float min_size_half = MIN(get_size().x, get_size().y) / 2.0;
+		const real_t min_size_half = MIN(get_size().x, get_size().y) / 2.0;
 		_set_center_point(Point2(min_size_half, min_size_half));
 	}
 
-	if(data.normal.texture.is_valid())
 		_update_texture_cache(data.normal);
-	if(data.pressed.texture.is_valid())
 		_update_texture_cache(data.pressed);
-	if(data.stick.texture.is_valid()) {
 		_update_texture_cache(data.stick);
-	}
 
 	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) {
 		if(!shape)
 			shape = new TouchScreenJoystick::Shape();
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_deadzone_extent(), get_cardinal_direction_span());
+		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius() * MIN(get_size().x, get_size().y), get_deadzone_extent(), get_cardinal_direction_span());
 	}
 }
 
@@ -186,55 +182,53 @@ void TouchScreenJoystick::_update_texture_cache(TouchScreenJoystick::Data::Textu
 }
 
 void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span) {
-	return;
-	const float rad90deg = Math_PI * 0.5;
-	const float angle = rad90deg - p_direction_span;
-	const float new_angle[4] =  { (2.0f * Math_PI) - (angle/2.0f), (0.5f * Math_PI) - (angle/2.0f), -(angle/2.0f) + Math_PI, (1.5f * Math_PI) - (angle/2.0f)}; // (360, 90, 180, 270) - angle
-	const float end_angle[4] =  { (angle/2.0f),  (0.5f * Math_PI) + (angle/2.0f), (angle/2.0f) + Math_PI, (1.5f * Math_PI) + (angle/2.0f)}; // (360, 90, 180, 270) + angle
-	unsigned int marks[8] = {0,0,0,0,0,0,0,0};
+	//draw points for circle in the middle and 8 or 4 quarter disks in the outer edges
+	const real_t rad90deg = Math_PI * 0.5;
+	const real_t angle = (p_direction_span + CMP_EPSILON < rad90deg? rad90deg - p_direction_span : 0.0);
+	const real_t half_angle = angle / 2.0f;
+	const real_t start_angle[4] =  { (2.0f * Math_PI) - half_angle, (0.5f * Math_PI) - half_angle, -half_angle + Math_PI, (1.5f * Math_PI) - half_angle}; // (360, 90, 180, 270) - angle
+	const real_t end_angle[4] =  { half_angle,  (0.5f * Math_PI) + half_angle, half_angle + Math_PI, (1.5f * Math_PI) + half_angle }; // (0, 90, 180, 270) + angle
+	unsigned int marked_edges[8] = {0,0,0,0,0,0,0,0}; // { upStart, upEnd, rightStart, rightEnd, downStart, downEnd, leftStart, leftEnd }
 	for (int i = 0, j = 0, k = 1; i < 24; i++) {
-		const float theta = Math_PI * i / 12.0f;
+		const real_t theta = Math_PI * i / 12.0f;
 		_deadzone_circle.set(i, p_center + (Vector2(Math::cos(theta), Math::sin(theta)) * p_radius * p_deadzone)); // deadzone circle
-		if(j < 4 && end_angle[j] <= theta) {
-			const int num = i - 1;
-			marks[1 + j * 2] = MAX(num, 0);
+		if(j < 4 && (end_angle[j] - CMP_EPSILON) <= theta) { // up, right, down, left
+			marked_edges[1 + j * 2] = i - 1;
 			j++;
 		}
-		if(k < 5 && new_angle[k % 4] <= theta) { 
-			marks[(k % 4) * 2] = i - 1; 
+		if(k < 5 && (start_angle[k % 4] - CMP_EPSILON) <= theta) { // right, down, left, up
+			marked_edges[(k % 4) * 2] = i - 1; 
 			k++;
 		}
 	}
 
-	//[0-3] is U D L R
-	if(p_direction_span < (rad90deg - CMP_EPSILON)) {
-		unsigned short int size = 2u + 4u * (angle/rad90deg); // outer ring
-		const float angle_increments = angle/(float)(size - 1);
+	//[0-3] is Up Down Left Right
+	if(p_direction_span + CMP_EPSILON < rad90deg) {
+		const unsigned short int size = 2u + 4u * (angle/rad90deg); // outer ring // 2 for the start and end edges of the outer ring
+		const real_t angle_increments = angle/(real_t)(size - 1);
 		
 		Vector<Point2> points;
 		points.resize(size);
 		for(int i = 0; i < size; ++i) {
-			const float theta = (angle_increments * i) - (angle/2.0);
+			const real_t theta = (angle_increments * i) - (half_angle); // outer ring points
 			points.set(i, Vector2(Math::cos(theta), Math::sin(theta)) * p_radius);
 		}
 		for(int i = 0; i < 4; ++i) { // outer ring of circle
 			Vector<Point2> res;
-			const int mark_size = 1 + (i? marks[1 + i * 2] - marks[i * 2] : (marks[1] + 24 - marks[0]) % 24);
-			const int new_size = size + mark_size + 2;
-			res.resize(new_size);
+			res.resize(3 + size + (i ? marked_edges[1 + i * 2] - marked_edges[i * 2] : ((marked_edges[1] + 24 - marked_edges[0]) % 24)) ); // +2 for start and end edges of the inner ring and +1 for extra size
 			for(int j = 0; j < size; ++j) {
 				const Vector2& point = points.get(j);
-				if(i % 2) 
-					res.set(j, p_center + Vector2(point.y, point.x) * (i % 3? Vector2(-1, 1) : Vector2(1, -1)) );
+				if(i % 2)  //outer ring points plus center and if up, down, left, right
+					res.set(j, p_center + Vector2(point.y, point.x) * (i % 3? Vector2(-1, 1) : Vector2(1, -1)) ); // i is 1 or 3; 1 is left; 3 is right
 				else 
-					res.set(j, p_center + point * (i? Vector2(-1, -1) : Vector2(1, 1)) );
+					res.set(j, p_center + point * (i? Vector2(-1, -1) : Vector2(1, 1)) ); // i is 0 or 2; 2 is down; 0 is up
 			}
-			res.set(size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone)); // inner ring of the circle
-			for(int j = marks[i * 2], k = new_size - 1; j != mark_size; j = (j + 1) % 24) {
-				res.set(k, _deadzone_circle.get(j));
-				k--;
+			res.set(size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone)); // inner ring of the circle end edge
+			for(int index = marked_edges[i * 2], res_rend = res.size() - 2; index != marked_edges[1 + i * 2] + 1; --res_rend) { // j is startEdge and condition is if j != endEdge + 1
+				res.set(res_rend, _deadzone_circle.get(index));
+				++index %= 24;
 			}
-			res.set(new_size, p_center + (Vector2(Math::cos(new_angle[i]), Math::sin(new_angle[i])) * p_radius * p_deadzone));
+			res.set(res.size() - 1, p_center + (Vector2(Math::cos(start_angle[i]), Math::sin(start_angle[i])) * p_radius * p_deadzone)); // inner ring of the circle start edge
 			_direction_zones.set(i, res);
 		}
 	} else 
@@ -244,41 +238,37 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 		_direction_zones.set(4, Vector<Vector2>());
 		return;
 	}
-	//[4-7] is UR UL DR DL 
-	unsigned short int size = 2u + 4u * (p_direction_span/rad90deg);
-	const float angle_increments = angle/(float)(size - 1);
+	//[4-7] is UpRight UpLeft DownRight DownLeft
+	const unsigned short int size = 2u + 4u * (p_direction_span/rad90deg);
+	const real_t angle_increments = p_direction_span/(real_t)(size - 1);
 	Vector<Point2> points;
 	points.resize(size);
 	for(int i = 0; i < size; ++i) {
-		const float theta = (angle_increments * i) + (angle/2.0);
+		const real_t theta = (angle_increments * i) + half_angle;
 		points.set(i, Vector2(Math::cos(theta), Math::sin(theta)) * p_radius);
 	}
 	for(int i = 0; i < 4; ++i) {
-		Vector<Point2>& res = _direction_zones.get(i + 4);
-		const int mark_size = 1 + marks[(2 + i * 2) % 8] - marks[1 + i * 2];
-		const int new_size = size + mark_size + 2;
-		res.resize(new_size);
+		Vector<Point2> res;
+		res.resize(3 + size + (i != 3? marked_edges[(2 + i * 2) % 8] - marked_edges[1 + i * 2] : (marked_edges[0] + 24 - marked_edges[7]) % 24) ); // end edge of up subtracted by start edge of right... and so on so forth for the other edges
 		for(int j = 0; j < size; ++j) {
 			const Vector2& point = points.get(j);
-			if(i % 2) 
+			if(i % 2) //downright, downleft
 				res.set(j, p_center + Vector2(point.y, point.x) * (i % 3? Vector2(-1, 1) : Vector2(1, -1)) );
-			else 
+			else  //upright, downleft
 				res.set(j, p_center + point * (i? Vector2(-1, -1) : Vector2(1, 1)) );
 		}
-		res.set(size, p_center + (Vector2(Math::cos(new_angle[(i + 1) % 4]), Math::sin(new_angle[(i + 1) % 4])) * p_radius * p_deadzone));
-		for(int j = marks[1 + i * 2], k = new_size - 1; j != mark_size + 1; j = (j + 1) % 24) { 
-			res.set(k, _deadzone_circle.get(j));
-			k--;
+		res.set(size, p_center + (Vector2(Math::cos(start_angle[(i + 1) % 4]), Math::sin(start_angle[(i + 1) % 4])) * p_radius * p_deadzone));
+		for (int index = marked_edges[1 + i * 2], res_rend = res.size() - 2; index != marked_edges[(2 + i * 2) % 8] + 1; --res_rend) {
+			res.set(res_rend, _deadzone_circle.get(index));
+			++index %= 24;
 		}
-		res.set(new_size, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone));
+		res.set(res.size() - 1, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone));
+		_direction_zones.set(i + 4, res);
 	}
-
+	
 }
 
-void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to) {
-	return;
-	Color pallete(0.7, 0.7, 0.7, 0.35); //get_tree()->get_debug_collisions_color();
-
+void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to, Color pallete) {
 	Vector<Color> a_pallete; a_pallete.push_back(pallete.darkened(0.15));
 	_add_to_canvas(p_rid_to, _deadzone_circle, a_pallete);
 
@@ -287,7 +277,7 @@ void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to) {
 		for (int i = 0; i < 4; ++i)
 			_add_to_canvas(p_rid_to, _direction_zones[i], a_pallete2);
 	}
-
+	
 	if(_direction_zones[4].size() != 0) {
 		Vector<Color> a_pallete3; a_pallete3.push_back(pallete.lightened(0.15));
 		for(int i = 4; i < 8; ++i)
@@ -381,14 +371,14 @@ bool TouchScreenJoystick::is_normal_moved_to_touch_pos() const {
 	return normal_moved_to_touch_pos;
 }
 
-void TouchScreenJoystick::set_radius(float p_radius) {
+void TouchScreenJoystick::set_radius(real_t p_radius) {
 	radius = p_radius;
 	if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape) {
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius(), get_deadzone_extent(), get_cardinal_direction_span());
+		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius() * MIN(get_size().x, get_size().y), get_deadzone_extent(), get_cardinal_direction_span());
 		queue_redraw();
 	}
 }
-float TouchScreenJoystick::get_radius() const {
+real_t TouchScreenJoystick::get_radius() const {
 	return radius;
 }
 
@@ -490,5 +480,5 @@ TouchScreenJoystick::Shape::Shape()
 	: _deadzone_circle(), _direction_zones()
 {
 	_deadzone_circle.resize(24);
-	_deadzone_circle.resize(8);
+	_direction_zones.resize(8);
 }

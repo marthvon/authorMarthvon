@@ -5,15 +5,13 @@
 
 void TouchButton::_notification(int p_what) {
     switch(p_what){
-		case NOTIFICATION_EXIT_TREE:
-		case NOTIFICATION_PAUSED: {
-            _release(true);
-        } break;
-        case NOTIFICATION_UNPAUSED: {
-            if(_propagate_on_unpause) {
-                _release();
-            }
-        } break;
+		case NOTIFICATION_PAUSED:
+			_reset();
+        break;
+		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS:
+			if (get_finger_index() != -1)
+				accum_t += get_process_delta_time();
+		break;
         case NOTIFICATION_DRAW: {
             Color color = Color(1,1,1);
             if(get_finger_index() != -1) {
@@ -32,8 +30,7 @@ void TouchButton::_notification(int p_what) {
 
 			if (!is_visible_in_tree()) {
 				set_process_input(false);
-				if (get_finger_index() != -1)
-					_release();
+				_reset();
 			} else
 				set_process_input(true);
 		} break;
@@ -53,7 +50,11 @@ void TouchButton::input(const Ref<InputEvent>& p_event) {
         const bool point_is_inside = Control::has_point(coord) && (!radius || (coord - (get_size()/2.0)).length() <= radius );
         if(point_is_inside && get_finger_index() == -1 && st->is_pressed()) {
             _press(st->get_index());
-        } else if (get_finger_index() == st->get_index() && (point_is_inside || !signal_only_when_released_inside)) {
+        } else if (get_finger_index() == st->get_index()) {
+			if (signal_only_when_released_inside && !point_is_inside) {
+				_reset();
+				return;
+			}
             _release();
         }
     }
@@ -74,14 +75,8 @@ void TouchButton::_press(int p_index) {
 	queue_redraw();
 }
 
-void TouchButton::_release(bool p_exiting_tree) {
+void TouchButton::_release() {
     _set_finger_index(-1);
-    if(p_exiting_tree) {
-        _propagate_on_unpause = true;
-		if (action != StringName())
-			Input::get_singleton()->action_release(action);
-        return;
-    }
     if (action != StringName()) {
 	    Input::get_singleton()->action_release(action);
 	    Ref<InputEventAction> iea;
@@ -92,8 +87,16 @@ void TouchButton::_release(bool p_exiting_tree) {
 	}
 
     emit_signal("button_released");
-	if (isAccumulate)
+	if (isAccumulate) {
 		emit_signal("button_released_with_time_accum", accum_t);
+		accum_t = 0;
+	}
+	queue_redraw();
+}
+
+void TouchButton::_reset() {
+	_set_finger_index(-1);
+	accum_t = 0;
 	queue_redraw();
 }
 
@@ -156,6 +159,8 @@ real_t TouchButton::get_radius() const{
 }
 void TouchButton::toggle_accumulate_time(const bool p_accumulate){
     isAccumulate = p_accumulate;
+	accum_t = 0;
+	set_physics_process_internal(p_accumulate);
 }
 bool TouchButton::is_accumulate_time() const{
     return isAccumulate;

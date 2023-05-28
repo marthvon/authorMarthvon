@@ -6,6 +6,7 @@
 #include "core/templates/vector.h"
 #include "core/input/input_event.h"
 
+#ifdef TOOLS_ENABLED
 void TouchScreenDPad::_update_shape_points(const float size) {
 	if(_shape_points.is_null())
 		_shape_points.instantiate();
@@ -62,7 +63,7 @@ void TouchScreenDPad::_draw_shape() {
 	}
 	_shape_points->draw(get_canvas_item(), pallete.darkened(0.15));
 }
-
+#endif
 void TouchScreenDPad::input(const Ref<InputEvent>& p_event) {
 	ERR_FAIL_COND(p_event.is_null());
 
@@ -150,8 +151,10 @@ void TouchScreenDPad::_notification(int p_what) {
 				_update_cache();
 			draw_texture_rect(texture, _position_rect);
 
+#ifdef TOOLS_ENABLED
 			if ((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && _shape_points.is_valid())
 				_draw_shape();
+#endif
 		} break;
 		case NOTIFICATION_RESIZED:
 			_update_cache();
@@ -168,9 +171,10 @@ void TouchScreenDPad::_update_cache() {
 
 	_set_center_point((size / 2.0f) + offs);
 	_position_rect = Rect2(offs, size);
-
+#ifdef TOOLS_ENABLED
 	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) 
 		_update_shape_points(size.x);
+#endif
 }
 
 Ref<Texture2D> TouchScreenDPad::get_texture() const {

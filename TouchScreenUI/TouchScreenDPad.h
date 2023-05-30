@@ -11,7 +11,7 @@ class TouchScreenDPad : public TouchScreenPad {
 
 private:
 	Ref<Texture2D> texture;
-	float scale_to_rect = 1; // if 0 then take texture as size (texture is always squared)
+	Point2 scale_to_rect = Point2(1, 1);
 
 	Rect2 _position_rect = Rect2();
 #ifdef TOOLS_ENABLED
@@ -27,10 +27,10 @@ protected:
 
 public:
 	Ref<Texture2D> get_texture() const;
-	void set_texture(Ref<Texture2D> p_texture);
+	void set_texture(const Ref<Texture2D> p_texture);
 
-	float get_scale_to_rect() const;
-	void set_scale_to_rect(const float p_scale);
+	Point2 get_scale_to_rect() const;
+	void set_scale_to_rect(Point2 p_scale);
 
 	TouchScreenDPad();
 private:
@@ -39,7 +39,7 @@ private:
 
 	void _update_cache();
 #ifdef TOOLS_ENABLED
-	void _update_shape_points(const float size); //put in a struct const RID& p_rid_to, const real_t p_extent, const real_t p_span
+	void _update_shape_points(); //put in a struct const RID& p_rid_to, const real_t p_extent, const real_t p_span
 	void _draw_shape();
 #endif
 };

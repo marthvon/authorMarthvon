@@ -2,19 +2,9 @@
 
 #include "core/os/os.h"
 
-inline constexpr char* _direction_changed = "direction_changed"; 
-
-void TouchScreenPad::_set_center_point(const Point2 p_center_point) {
-	_center_point = p_center_point;
-}
-
 const bool TouchScreenPad::_set_cardinal_direction_span(real_t p_span) {
 	cardinal_direction_span = p_span;
 	return true;
-}
-
-const Point2 TouchScreenPad::_get_center_point() const {
-	return _center_point;
 }
 
 void TouchScreenPad::_set_direction(Direction p_direction) {

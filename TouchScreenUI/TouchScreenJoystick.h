@@ -18,6 +18,7 @@ public:
 	};
 
 private:
+#ifdef TOOLS_ENABLED
 	class Shape {
 		Vector<Point2> _deadzone_circle;
 		Vector<Vector<Point2>> _direction_zones;
@@ -26,9 +27,10 @@ private:
 	public:
 		Shape();
 
-		void _update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span);
-		void _draw(const RID& p_rid_to, Color pallete);
-	} * shape;
+		void _update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span, const bool is_radius_equal_deadzone);
+		void _draw(const RID& p_rid_to, Color pallete, const bool is_radius_equal_deadzone);
+	} * shape = nullptr;
+#endif
 
 	struct Data {
 		struct TextureData {
@@ -37,11 +39,12 @@ private:
 			Vector2 scale = Vector2();
 
 			_FORCE_INLINE_ const Rect2 move_to_position(const Point2& p_point) const;
+			void _update_texture_cache(const Size2 parent_size, const bool is_centered);
 		} normal, pressed, stick;
 
 		Data();
 	} data;
-	float radius = 1.0;
+	real_t radius = 1.0;
 	
 	ShowMode show_mode = SHOW_ALL_ALWAYS;
 	bool stick_confined_inside = false; //keep clip content false
@@ -59,46 +62,48 @@ protected:
 	static void _bind_methods();
 
 public:
-	void set_radius(float p_radius);
+	void set_radius(const real_t p_radius);
 	float get_radius() const;
 
-	void set_texture(Ref<Texture2D> p_texture);
+	void set_texture(const Ref<Texture2D> p_texture);
 	Ref<Texture2D> get_texture() const;
 
 	void set_texture_scale(Vector2 p_scale);
 	Vector2 get_texture_scale() const;
 
-	void set_texture_pressed(Ref<Texture2D> p_texture_pressed);
+	void set_texture_pressed(const Ref<Texture2D> p_texture_pressed);
 	Ref<Texture2D> get_texture_pressed() const;
 
 	void set_texture_pressed_scale(Vector2 p_scale);
 	Vector2 get_texture_pressed_scale() const;
 
-	void set_stick_texture(Ref<Texture2D> p_stick);
+	void set_stick_texture(const Ref<Texture2D> p_stick);
 	Ref<Texture2D> get_stick_texture() const;
 
 	void set_stick_scale(Vector2 p_scale);
 	Vector2 get_stick_scale() const;
 
-	void set_show_mode(ShowMode p_show_mode);
+	void set_show_mode(const ShowMode p_show_mode);
 	ShowMode get_show_mode() const;
 
-	void set_normal_moved_to_touch_pos(bool p_move_normal_to_touch_pos);
+	void set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos);
 	bool is_normal_moved_to_touch_pos() const;
 
-	void set_stick_confined_inside(bool p_confined_inside);
+	void set_stick_confined_inside(const bool p_confined_inside);
 	bool is_stick_confined_inside() const;
+
+	void set_monitor_speed(const bool p_monitor_speed);
+	bool get_monitor_speed() const;
 
 	TouchScreenJoystick();
 	~TouchScreenJoystick();
 private:
 	virtual void input(const Ref<InputEvent>& p_event) override;
 
-	bool _update_direction_with_point(Point2 p_point);
-	bool _update_center_with_point(Point2 p_point, const bool is_point_center);
+	const bool _update_direction_with_point(Point2 p_point);
+	inline const bool _is_point_inside(const Point2 p_point);
 
 	void _update_cache();
-	void _update_texture_cache(Data::TextureData& p_data);
 };
 
 VARIANT_ENUM_CAST(TouchScreenJoystick::ShowMode);

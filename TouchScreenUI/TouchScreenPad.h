@@ -28,16 +28,12 @@ private:
 	real_t deadzone_extent;
 	real_t cardinal_direction_span;
 
-	Point2 _center_point = Point2();
 	bool _propagate_on_unpause = false;
 	bool update_cache = false;
 
 protected:
 	virtual const bool _set_deadzone_extent(real_t p_extent);
 	virtual const bool _set_cardinal_direction_span(real_t p_span);
-
-	void _set_center_point(const Point2 p_center_point);
-	const Point2 _get_center_point() const;
 
 	void _set_direction(Direction p_direction);
 	//get_direction is a public function

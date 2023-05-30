@@ -57,11 +57,10 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 	const InputEventScreenTouch *st = Object::cast_to<InputEventScreenTouch>(*p_event);
 	if (st) {
 		Point2 coord = get_global_transform_with_canvas().affine_inverse().xform(st->get_position());
-		if (get_finger_index() == -1 && st->is_pressed() && Control::has_point(coord) && _update_center_with_point(coord, normal_moved_to_touch_pos)) { //press inside Control.rect
+		if (get_finger_index() == -1 && st->is_pressed() && _is_point_inside(coord)) { //press inside Control.rect
 			_set_finger_index(st->get_index());
+			_touch_pos_on_initial_press = coord;
 			_update_direction_with_point(coord);
-			if(get_direction() == DIR_NEUTRAL)
-				_direction_changed();
 		} else if (get_finger_index() == st->get_index()) //on release
 			_release();
 		return;
@@ -70,7 +69,7 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 	const InputEventScreenDrag *sd = Object::cast_to<InputEventScreenDrag>(*p_event);
 	if (sd) {
 		Point2 coord = get_global_transform_with_canvas().affine_inverse().xform(sd->get_position());
-		if (is_passby_press() && get_finger_index() == -1 && Control::has_point(coord) && _update_center_with_point(coord, false)) { //passby press enter Control.rect
+		if (is_passby_press() && get_finger_index() == -1 && _is_point_inside(coord)) { //passby press enter Control.rect
 			_set_finger_index(sd->get_index());
 			_update_direction_with_point(coord);
 		} else if (get_finger_index() == sd->get_index()) {//dragging dpad direction
@@ -81,17 +80,14 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 	}
 }
 
-bool TouchScreenJoystick::_update_center_with_point(Point2 p_point, const bool is_point_center){
-	if((p_point - (_get_center_point() + get_center_offset())).length() > radius)
-		return false;
-	_touch_pos_on_initial_press = is_point_center? p_point : _get_center_point() + get_center_offset();
-	return true;
+const bool TouchScreenJoystick::_is_point_inside(const Point2 p_point){
+	return Control::has_point(p_point) && ( (p_point - ((get_size() / 2.0) + get_center_offset()) ).length() <= radius);
 }
 
-bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
+const bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 	_current_touch_pos = p_point;
 
-	p_point -= normal_moved_to_touch_pos? _touch_pos_on_initial_press : (_get_center_point() + get_center_offset());
+	p_point -= normal_moved_to_touch_pos? _touch_pos_on_initial_press : ((get_size() / 2.0) + get_center_offset());
 	Direction xAxis = p_point.x > 0 ? DIR_RIGHT : DIR_LEFT;
 	Direction yAxis = p_point.y > 0 ? DIR_DOWN : DIR_UP;	
 
@@ -143,9 +139,10 @@ void TouchScreenJoystick::_notification(int p_what) {
 						) : data.stick._position_rect
 					) 
 				);
-
+#ifdef TOOLS_ENABLED
 			if ((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape)
-				shape->_draw(get_canvas_item(), get_tree()->get_debug_collisions_color());
+				shape->_draw(get_canvas_item(), get_tree()->get_debug_collisions_color(), radius == get_deadzone_extent());
+#endif
 		} break;
 		case NOTIFICATION_RESIZED:
 			_update_cache();
@@ -154,34 +151,28 @@ void TouchScreenJoystick::_notification(int p_what) {
 }
 
 void TouchScreenJoystick::_update_cache() {
-	if(is_centered())
-		_set_center_point(get_size() / 2.0);
-	else {
-		const real_t min_size_half = MIN(get_size().x, get_size().y) / 2.0;
-		_set_center_point(Point2(min_size_half, min_size_half));
-	}
-
-		_update_texture_cache(data.normal);
-		_update_texture_cache(data.pressed);
-		_update_texture_cache(data.stick);
-
+		data.normal._update_texture_cache(get_size(), is_centered());
+		data.pressed._update_texture_cache(get_size(), is_centered());
+		data.stick._update_texture_cache(get_size(), is_centered());
+#ifdef TOOLS_ENABLED
 	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) {
 		if(!shape)
 			shape = new TouchScreenJoystick::Shape();
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius() * MIN(get_size().x, get_size().y), get_deadzone_extent(), get_cardinal_direction_span());
+		shape->_update_shape_points((get_size() / 2.0) + get_center_offset(), radius * MIN(get_size().x, get_size().y) / 2.0 , get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
 	}
+#endif
 }
 
-void TouchScreenJoystick::_update_texture_cache(TouchScreenJoystick::Data::TextureData& p_data) {
-	if (p_data.texture.is_null())
+void TouchScreenJoystick::Data::TextureData::_update_texture_cache(const Size2 parent_size, const bool is_centered) {
+	if (texture.is_null())
 		return;
-	const Size2 size = p_data.texture->get_size() * (p_data.scale.length() == 0? Size2(1, 1) : p_data.scale);
-	const Point2 offs = is_centered()? (get_size() - size) / 2.0 : Point2(0, 0);
-	
-	p_data._position_rect = Rect2(offs, size);
-}
+	const Size2 size = (scale.length() == 0 ? texture->get_size() : (parent_size * scale));
+	const Point2 offs = is_centered ? (parent_size - size) / 2.0 : Point2(0, 0);
 
-void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span) {
+	_position_rect = Rect2(offs, size);
+}
+#ifdef TOOLS_ENABLED
+void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span, const bool is_radius_equal_deadzone) {
 	//draw points for circle in the middle and 8 or 4 quarter disks in the outer edges
 	const real_t rad90deg = Math_PI * 0.5;
 	const real_t angle = (p_direction_span + CMP_EPSILON < rad90deg? rad90deg - p_direction_span : 0.0);
@@ -193,7 +184,7 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 		const real_t theta = Math_PI * i / 12.0f;
 		_deadzone_circle.set(i, p_center + (Vector2(Math::cos(theta), Math::sin(theta)) * p_radius * p_deadzone)); // deadzone circle
 		if(j < 4 && end_angle[j] <= theta) { // up, right, down, left
-			marked_edges[1 + j * 2] = MIN(i - 1, 0);
+			marked_edges[1 + j * 2] = MAX(i - 1, 0);
 			j++;
 		}
 		if(k < 5 && start_angle[k % 4] <= theta) { // right, down, left, up
@@ -201,6 +192,9 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 			k++;
 		}
 	}
+
+	if (is_radius_equal_deadzone)
+		return;
 
 	//[0-3] is Up Down Left Right
 	if(p_direction_span + CMP_EPSILON < rad90deg) {
@@ -265,12 +259,14 @@ void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, con
 		res.set(res.size() - 1, p_center + (Vector2(Math::cos(end_angle[i]), Math::sin(end_angle[i])) * p_radius * p_deadzone));
 		_direction_zones.set(i + 4, res);
 	}
-	
 }
 
-void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to, Color pallete) {
+void TouchScreenJoystick::Shape::_draw(const RID& p_rid_to, Color pallete, const bool is_radius_equal_deadzone) {
 	Vector<Color> a_pallete; a_pallete.push_back(pallete.darkened(0.15));
 	_add_to_canvas(p_rid_to, _deadzone_circle, a_pallete);
+
+	if (is_radius_equal_deadzone)
+		return;
 
 	if(_direction_zones[0].size() != 0) {
 		Vector<Color> a_pallete2; a_pallete2.push_back(pallete);
@@ -291,6 +287,7 @@ void TouchScreenJoystick::Shape::_add_to_canvas(const RID p_rid_to, const Vector
 	// Draw the last segment as it's not drawn by `canvas_item_add_polyline()`.
 	RenderingServer::get_singleton()->canvas_item_add_line(p_rid_to, p_points[p_points.size() - 1], p_points[0], p_color[0], 1.0, true);
 }
+#endif
 
 void TouchScreenJoystick::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("set_texture", "texture"), &TouchScreenJoystick::set_texture);
@@ -352,7 +349,7 @@ void TouchScreenJoystick::_bind_methods(){
 	BIND_ENUM_CONSTANT(SHOW_ALL_ALWAYS);
 }
 
-void TouchScreenJoystick::set_show_mode(ShowMode p_show_mode) {
+void TouchScreenJoystick::set_show_mode(const ShowMode p_show_mode) {
 	show_mode = p_show_mode;
 	_update_cache_dirty();
 	queue_redraw();
@@ -361,7 +358,7 @@ TouchScreenJoystick::ShowMode TouchScreenJoystick::get_show_mode() const {
 	return show_mode;
 }
 
-void TouchScreenJoystick::set_normal_moved_to_touch_pos(bool p_move_normal_to_touch_pos) {
+void TouchScreenJoystick::set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos) {
 	normal_moved_to_touch_pos = p_move_normal_to_touch_pos;
 	_update_cache_dirty();
 	if (get_finger_index() != -1) 
@@ -371,18 +368,20 @@ bool TouchScreenJoystick::is_normal_moved_to_touch_pos() const {
 	return normal_moved_to_touch_pos;
 }
 
-void TouchScreenJoystick::set_radius(real_t p_radius) {
-	radius = p_radius;
+void TouchScreenJoystick::set_radius(const real_t p_radius) {
+	radius = MAX(p_radius, get_deadzone_extent());
+#ifdef TOOLS_ENABLED
 	if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape) {
-		shape->_update_shape_points(_get_center_point() + get_center_offset(), get_radius() * MIN(get_size().x, get_size().y), get_deadzone_extent(), get_cardinal_direction_span());
+		shape->_update_shape_points((get_size() / 2.0) + get_center_offset(), radius * MIN(get_size().x, get_size().y) / 2.0, get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
 		queue_redraw();
 	}
+#endif
 }
 real_t TouchScreenJoystick::get_radius() const {
 	return radius;
 }
 
-void TouchScreenJoystick::set_stick_confined_inside(bool p_confined_inside) {
+void TouchScreenJoystick::set_stick_confined_inside(const bool p_confined_inside) {
 	stick_confined_inside = p_confined_inside;
 	_update_cache_dirty();
 	if(!stick_confined_inside)
@@ -394,10 +393,10 @@ bool TouchScreenJoystick::is_stick_confined_inside() const {
 	return stick_confined_inside;
 }
 
-void TouchScreenJoystick::set_texture(Ref<Texture2D> p_texture) {
+void TouchScreenJoystick::set_texture(const Ref<Texture2D> p_texture) {
 	data.normal.texture = p_texture;
 	update_minimum_size();
-	_update_texture_cache(data.normal);
+	data.normal._update_texture_cache(get_size(), is_centered());
 	if (get_finger_index() == -1 || (show_mode & 0b01))
 		queue_redraw();
 }
@@ -405,19 +404,21 @@ Ref<Texture2D> TouchScreenJoystick::get_texture() const {
 	return data.normal.texture;
 }
 void TouchScreenJoystick::set_texture_scale(Vector2 p_scale) {
+	p_scale.x = MAX(p_scale.x, 0);
+	p_scale.y = MAX(p_scale.y, 0);
 	data.normal.scale = p_scale;
 	update_minimum_size();
-	_update_texture_cache(data.normal);
+	data.normal._update_texture_cache(get_size(), is_centered());
 	if (data.normal.texture.is_valid() && (get_finger_index() == -1 || (show_mode & 0b01)))
 		queue_redraw();
 }
 Vector2 TouchScreenJoystick::get_texture_scale() const {
 	return data.normal.scale;
 }
-void TouchScreenJoystick::set_texture_pressed(Ref<Texture2D> p_texture_pressed) {
+void TouchScreenJoystick::set_texture_pressed(const Ref<Texture2D> p_texture_pressed) {
 	data.pressed.texture = p_texture_pressed;
 	update_minimum_size();
-	_update_texture_cache(data.pressed);
+	data.pressed._update_texture_cache(get_size(), is_centered());
 	if (get_finger_index() != -1)
 		queue_redraw();
 }
@@ -425,19 +426,21 @@ Ref<Texture2D> TouchScreenJoystick::get_texture_pressed() const {
 	return data.pressed.texture;
 }
 void TouchScreenJoystick::set_texture_pressed_scale(Vector2 p_scale) {
+	p_scale.x = MAX(p_scale.x, 0);
+	p_scale.y = MAX(p_scale.y, 0);
 	data.pressed.scale = p_scale;
 	update_minimum_size();
-	_update_texture_cache(data.pressed);
+	data.pressed._update_texture_cache(get_size(), is_centered());
 	if (data.pressed.texture.is_valid() && get_finger_index() != -1)
 		queue_redraw();
 }
 Vector2 TouchScreenJoystick::get_texture_pressed_scale() const {
 	return data.pressed.scale;
 }
-void TouchScreenJoystick::set_stick_texture(Ref<Texture2D> p_stick) {
+void TouchScreenJoystick::set_stick_texture(const Ref<Texture2D> p_stick) {
 	data.stick.texture = p_stick;
 	update_minimum_size();
-	_update_texture_cache(data.stick);
+	data.stick._update_texture_cache(get_size(), is_centered());
 	if ((show_mode & 0b10) || get_finger_index() != -1)
 		queue_redraw();
 }
@@ -445,9 +448,11 @@ Ref<Texture2D> TouchScreenJoystick::get_stick_texture() const {
 	return data.stick.texture;
 }
 void TouchScreenJoystick::set_stick_scale(Vector2 p_scale) {
+	p_scale.x = MAX(p_scale.x, 0);
+	p_scale.y = MAX(p_scale.y, 0);
 	data.stick.scale = p_scale;
 	update_minimum_size();
-	_update_texture_cache(data.stick);
+	data.stick._update_texture_cache(get_size(), is_centered());
 	if (data.stick.texture.is_valid() && ((show_mode & 0b10) || get_finger_index() != -1)) 
 		queue_redraw();
 }
@@ -468,17 +473,21 @@ _FORCE_INLINE_ const Rect2 TouchScreenJoystick::Data::TextureData::move_to_posit
 }
 
 TouchScreenJoystick::TouchScreenJoystick()
-	: TouchScreenPad(0.4, 0.575), data(), shape(nullptr)
+	: TouchScreenPad(0.4, 0.575), data()
 {}
 
+#ifdef TOOLS_ENABLED
 TouchScreenJoystick::~TouchScreenJoystick() {
 	if(shape)
 		delete shape;
 }
 
-TouchScreenJoystick::Shape::Shape() 
+TouchScreenJoystick::Shape::Shape()
 	: _deadzone_circle(), _direction_zones()
 {
 	_deadzone_circle.resize(24);
 	_direction_zones.resize(8);
 }
+#else
+TouchScreenJoystick::~TouchScreenJoystick() {}
+#endif

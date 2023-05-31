@@ -61,8 +61,21 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 			_set_finger_index(st->get_index());
 			_touch_pos_on_initial_press = coord;
 			_update_direction_with_point(coord);
-		} else if (get_finger_index() == st->get_index()) //on release
+		}
+		else if (get_finger_index() == st->get_index()) {//on release
 			_release();
+			_touch_pos_on_initial_press = Point2(0, 0);
+			_current_touch_pos = Point2(0, 0);
+			if (speed_data) {
+				emit_signal("direction_changed_with_speed", -1, get_direction(), speed_data->_drag_speed);
+				emit_signal("angle_with_rotation_speed", -1, get_angle(), speed_data->_rotation_speed);
+				emit_signal("direction_and_angle_with_speed", -1, get_direction(), speed_data->_drag_speed, get_angle(), speed_data->_rotation_speed);
+
+				speed_data->_prev_touch_pos = Point2(0, 0);
+				speed_data->_drag_speed = Point2(0, 0);
+				speed_data->_rotation_speed = 0;
+			}
+		}
 		queue_redraw();
 		return;
 	}
@@ -72,31 +85,28 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 		Point2 coord = get_global_transform_with_canvas().xform_inv(sd->get_position());
 		if (is_passby_press() && get_finger_index() == -1 && _is_point_inside(coord)) { //passby press enter Control.rect
 			_set_finger_index(sd->get_index());
-			_touch_pos_on_initial_press = coord;
+			_touch_pos_on_initial_press = get_size() * 0.5;
 			_update_direction_with_point(coord);
 		} else if (get_finger_index() == sd->get_index()) {//dragging dpad direction
-			if(_update_direction_with_point(coord))
-				emit_signal("direction_changed_with_speed", get_finger_index(), get_direction(), sd->get_velocity(), coord.angle());
-			emit_signal("angle_with_rotation_speed", coord.angle(), sd->get_velocity());
+			_update_direction_with_point(coord);
 		}
 		queue_redraw();
 	}
 }
 
 const bool TouchScreenJoystick::_is_point_inside(const Point2 p_point){
-	return (Control::has_point(p_point) && (((get_size() / 2.0) + get_center_offset() - p_point).length() <= (radius * MIN(get_size().x, get_size().y) / 2.0)));
+	return (Control::has_point(p_point) && (((get_size() * 0.5) + get_center_offset() - p_point).length() <= _get_radius()));
 }
 
-const bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
+void TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
+	p_point -= normal_moved_to_touch_pos? _touch_pos_on_initial_press : ((get_size() * 0.5) + get_center_offset());
 	_current_touch_pos = p_point;
-
-	p_point -= normal_moved_to_touch_pos? _touch_pos_on_initial_press : ((get_size() / 2.0) + get_center_offset());
 	Direction xAxis = p_point.x > 0 ? DIR_RIGHT : DIR_LEFT;
 	Direction yAxis = p_point.y > 0 ? DIR_DOWN : DIR_UP;	
 
 	Direction temp = DIR_NEUTRAL;
-	if(p_point.length() > (get_deadzone_extent() * radius * MIN(get_size().x, get_size().y) / 2.0)) {
-		const real_t theta = ((Math_PI * 0.5) - get_cardinal_direction_span()) / 2.0;
+	if(p_point.length() > (get_deadzone_extent() * _get_radius())) {
+		const real_t theta = ((Math_PI * 0.5) - get_cardinal_direction_span()) * 0.5;
 		const real_t omega = p_point.abs().angle();
 		if(omega < theta)
 			temp = xAxis;
@@ -108,15 +118,36 @@ const bool TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 	if(temp != get_direction()) {
 		_set_direction(temp);
 		_direction_changed();
-		return true;
 	}
-	return false;
+	emit_signal("angle_changed", p_point.angle());
+}
+
+Vector2 TouchScreenJoystick::SpeedMonitorData::update_drag_speed(const Point2 _current_touch_pos, const double delta) {
+	_drag_speed -= (_current_touch_pos - _prev_touch_pos) * 2.0  / delta;
+	return _drag_speed;
+}
+real_t TouchScreenJoystick::SpeedMonitorData::update_rotation_speed(const Point2 _current_touch_pos, const double delta) {
+	if (_prev_touch_pos.length() == 0)
+		return 0;
+	Transform2D temp(_prev_touch_pos.normalized(), (_prev_touch_pos.x > 0? (_prev_touch_pos.y > 0?
+		Vector2(-1, 1): Vector2(1, 1)) : (_prev_touch_pos.y > 0 ? Vector2(-1, -1) : Vector2(1, -1))),
+		Vector2(0, 0));
+	temp.orthonormalize();
+	_rotation_speed -= (double)(temp.basis_xform(_current_touch_pos.normalized()).angle()) * 2.0 / delta ;
+	return _rotation_speed;
 }
 
 void TouchScreenJoystick::_notification(int p_what) {
 	switch (p_what) {
-		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS: {
-			
+		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS:
+			if (get_finger_index() == -1)
+				break;
+		{
+			const double delta = get_physics_process_delta_time();
+			emit_signal("direction_changed_with_speed", get_finger_index(), get_direction(), speed_data->update_drag_speed(_current_touch_pos, delta));
+			emit_signal("angle_with_rotation_speed", get_finger_index(), get_angle(), speed_data->update_rotation_speed(_current_touch_pos, delta));
+			emit_signal("direction_and_angle_with_speed", get_finger_index(), get_direction(), speed_data->_drag_speed, get_angle(), speed_data->_rotation_speed);
+			speed_data->_prev_touch_pos = _current_touch_pos;
 		} break;
 		case NOTIFICATION_DRAW: {
 			if(is_update_cache())
@@ -139,9 +170,10 @@ void TouchScreenJoystick::_notification(int p_what) {
 
 			if (data.stick.texture.is_valid() && ((show_mode & SHOW_STICK_WHEN_INACTIVE) || is_pressed))
 				draw_texture_rect(
-					data.stick.texture, ( is_pressed? 
-						data.stick.move_to_position( stick_confined_inside && _current_touch_pos.length() > radius? 
-							_current_touch_pos.normalized() * radius : _current_touch_pos
+					data.stick.texture, (is_pressed ?
+						data.stick.move_to_position(((stick_confined_inside && (_current_touch_pos.length() > _get_radius())) ?
+							_current_touch_pos.normalized() * _get_radius() : _current_touch_pos) + (normal_moved_to_touch_pos?
+								_touch_pos_on_initial_press : (get_size() * 0.5))
 						) : data.stick._position_rect
 					) 
 				);
@@ -164,7 +196,7 @@ void TouchScreenJoystick::_update_cache() {
 	if (Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) {
 		if(!shape)
 			shape = new TouchScreenJoystick::Shape();
-		shape->_update_shape_points((get_size() / 2.0) + get_center_offset(), radius * MIN(get_size().x, get_size().y) / 2.0 , get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
+		shape->_update_shape_points((get_size() * 0.5) + get_center_offset(), _get_radius() , get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
 	}
 #endif
 }
@@ -173,9 +205,13 @@ void TouchScreenJoystick::Data::TextureData::_update_texture_cache(const Size2 p
 	if (texture.is_null())
 		return;
 	const Size2 size = (scale.length() == 0 ? texture->get_size() : (parent_size * scale));
-	const Point2 offs = is_centered ? (parent_size - size) / 2.0 : Point2(0, 0);
+	const Point2 offs = is_centered ? (parent_size - size) * 0.5 : Point2(0, 0);
 
 	_position_rect = Rect2(offs, size);
+}
+
+real_t TouchScreenJoystick::get_angle() const {
+	return _current_touch_pos.angle();
 }
 
 void TouchScreenJoystick::_bind_methods(){
@@ -206,6 +242,9 @@ void TouchScreenJoystick::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("set_stick_confined_inside", "confined_inside"), &TouchScreenJoystick::set_stick_confined_inside);
 	ClassDB::bind_method(D_METHOD("is_stick_confined_inside"), &TouchScreenJoystick::is_stick_confined_inside);
 
+	ClassDB::bind_method(D_METHOD("set_monitor_speed", "monitor"), &TouchScreenJoystick::set_monitor_speed);
+	ClassDB::bind_method(D_METHOD("is_monitor_speed"), &TouchScreenJoystick::is_monitor_speed);
+
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "show mode", PROPERTY_HINT_ENUM, "Show Stick On Touch,Show Stick & Normal On Touch,Show Stick When Inactive,Show All Always"), "set_show_mode", "get_show_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius"), "set_radius", "get_radius");
 	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "move to touch pos"), "set_normal_moved_to_touch_pos", "is_normal_moved_to_touch_pos");
@@ -220,16 +259,29 @@ void TouchScreenJoystick::_bind_methods(){
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "stick_texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture2D"), "set_stick_texture", "get_stick_texture");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "stick_scale"), "set_stick_scale", "get_stick_scale");
 
-	ADD_SIGNAL(MethodInfo("direction_changed_with_speed",
+	ADD_SIGNAL(MethodInfo("direction_and_angle_with_speed",
 		PropertyInfo(Variant::INT, "finger_pressed"),
 		PropertyInfo(Variant::INT, "direction", PROPERTY_HINT_FLAGS),
 		PropertyInfo(Variant::FLOAT, "speed"),
-		PropertyInfo(Variant::FLOAT, "angle")
+		PropertyInfo(Variant::FLOAT, "angle"),
+		PropertyInfo(Variant::FLOAT, "rotation_speed")
 	));
 
-	ADD_SIGNAL(MethodInfo("angle_with_rotation_speed",
+	ADD_SIGNAL(MethodInfo("direction_changed_with_speed",
+		PropertyInfo(Variant::INT, "finger_pressed"),
+		PropertyInfo(Variant::INT, "direction", PROPERTY_HINT_FLAGS),
+		PropertyInfo(Variant::FLOAT, "speed")
+	));
+
+	ADD_SIGNAL(MethodInfo("angle_changed_with_rotation_speed",
+		PropertyInfo(Variant::INT, "finger_pressed"),
 		PropertyInfo(Variant::FLOAT, "angle"),
 		PropertyInfo(Variant::FLOAT, "speed")
+	));
+
+	ADD_SIGNAL(MethodInfo("angle_changed",
+		PropertyInfo(Variant::INT, "finger_pressed"),
+		PropertyInfo(Variant::FLOAT, "angle")
 	));
 
 	BIND_ENUM_CONSTANT(SHOW_STICK_ON_TOUCH);
@@ -249,9 +301,15 @@ TouchScreenJoystick::ShowMode TouchScreenJoystick::get_show_mode() const {
 
 void TouchScreenJoystick::set_monitor_speed(const bool p_monitor_speed) {
 	set_physics_process_internal(p_monitor_speed);
+	if (p_monitor_speed && speed_data == nullptr)
+		speed_data = new TouchScreenJoystick::SpeedMonitorData();
+	else {
+		delete speed_data;
+		speed_data = nullptr;
+	}
 	monitor_speed = p_monitor_speed;
 }
-bool TouchScreenJoystick::get_monitor_speed() const {
+bool TouchScreenJoystick::is_monitor_speed() const {
 	return monitor_speed;
 }
 
@@ -269,7 +327,7 @@ void TouchScreenJoystick::set_radius(const real_t p_radius) {
 	radius = MAX(p_radius, get_deadzone_extent());
 #ifdef TOOLS_ENABLED
 	if((Engine::get_singleton()->is_editor_hint() || (is_inside_tree() && get_tree()->is_debugging_collisions_hint())) && shape) {
-		shape->_update_shape_points((get_size() / 2.0) + get_center_offset(), radius * MIN(get_size().x, get_size().y) / 2.0, get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
+		shape->_update_shape_points((get_size() * 0.5) + get_center_offset(), _get_radius(), get_deadzone_extent(), get_cardinal_direction_span(), radius == get_deadzone_extent());
 		queue_redraw();
 	}
 #endif
@@ -366,7 +424,7 @@ TouchScreenJoystick::Data::Data()
 }
 			
 _FORCE_INLINE_ const Rect2 TouchScreenJoystick::Data::TextureData::move_to_position(const Point2& p_point) const {
-	return Rect2(p_point - (_position_rect.size / 2.0), _position_rect.size);
+	return Rect2(p_point - (_position_rect.size * 0.5), _position_rect.size);
 }
 
 TouchScreenJoystick::TouchScreenJoystick()
@@ -377,6 +435,8 @@ TouchScreenJoystick::TouchScreenJoystick()
 TouchScreenJoystick::~TouchScreenJoystick() {
 	if(shape)
 		delete shape;
+	if (speed_data)
+		delete speed_data;
 }
 
 TouchScreenJoystick::Shape::Shape()
@@ -386,15 +446,22 @@ TouchScreenJoystick::Shape::Shape()
 	_direction_zones.resize(8);
 }
 #else
-TouchScreenJoystick::~TouchScreenJoystick() {}
+TouchScreenJoystick::~TouchScreenJoystick() {
+	if (speed_data)
+		delete speed_data;
+}
 #endif
+
+const real_t TouchScreenJoystick::_get_radius() const {
+	return radius * MIN(get_size().x, get_size().y) * 0.5;
+}
 
 #ifdef TOOLS_ENABLED
 void TouchScreenJoystick::Shape::_update_shape_points(const Point2 p_center, const real_t p_radius, const real_t p_deadzone, const real_t p_direction_span, const bool is_radius_equal_deadzone) {
 	//draw points for circle in the middle and 8 or 4 quarter disks in the outer edges
 	const real_t rad90deg = Math_PI * 0.5;
 	const real_t angle = (p_direction_span + CMP_EPSILON < rad90deg ? rad90deg - p_direction_span : 0.0);
-	const real_t half_angle = angle / 2.0f;
+	const real_t half_angle = angle * 0.5;
 	const real_t start_angle[4] = { (2.0f * Math_PI) - half_angle, (0.5f * Math_PI) - half_angle, -half_angle + Math_PI, (1.5f * Math_PI) - half_angle }; // (360, 90, 180, 270) - angle
 	const real_t end_angle[4] = { half_angle,  (0.5f * Math_PI) + half_angle, half_angle + Math_PI, (1.5f * Math_PI) + half_angle }; // (0, 90, 180, 270) + angle
 	unsigned int marked_edges[8] = { 0,0,0,0,0,0,0,0 }; // { upStart, upEnd, rightStart, rightEnd, downStart, downEnd, leftStart, leftEnd }

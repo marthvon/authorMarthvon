@@ -53,6 +53,15 @@ private:
 
 	Point2 _touch_pos_on_initial_press = Point2();
 	Point2 _current_touch_pos = Point2();
+
+	struct SpeedMonitorData {
+		Point2 _prev_touch_pos = Point2();
+		Vector2 _drag_speed = Vector2();
+		real_t _rotation_speed = 0;
+
+		Vector2 update_drag_speed(const Point2 _current_touch_pos, const double delta);
+		real_t update_rotation_speed(const Point2 _current_touch_pos, const double delta);
+	} * speed_data = nullptr;
 protected:
 	const bool _set_deadzone_extent(real_t p_extent); // radius of a circle
 	const bool _set_cardinal_direction_span(real_t p_span); // a radian of an angle, no more than 90 degrees
@@ -93,17 +102,20 @@ public:
 	bool is_stick_confined_inside() const;
 
 	void set_monitor_speed(const bool p_monitor_speed);
-	bool get_monitor_speed() const;
+	bool is_monitor_speed() const;
+
+	real_t get_angle() const;
 
 	TouchScreenJoystick();
 	~TouchScreenJoystick();
 private:
 	virtual void input(const Ref<InputEvent>& p_event) override;
 
-	const bool _update_direction_with_point(Point2 p_point);
+	void _update_direction_with_point(Point2 p_point);
 	inline const bool _is_point_inside(const Point2 p_point);
 
 	void _update_cache();
+	inline const real_t _get_radius() const;
 };
 
 VARIANT_ENUM_CAST(TouchScreenJoystick::ShowMode);

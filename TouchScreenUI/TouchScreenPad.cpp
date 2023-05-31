@@ -29,7 +29,8 @@ void TouchScreenPad::_notification(int p_what) {
 			}
 		} break;
 		case NOTIFICATION_EXIT_TREE:
-			_release();
+			if(get_finger_index() != -1)
+				_release();
 		break;
 		case NOTIFICATION_PAUSED:
 			set_process_input(false);

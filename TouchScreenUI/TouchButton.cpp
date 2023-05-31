@@ -10,7 +10,7 @@ void TouchButton::_notification(int p_what) {
         break;
 		case NOTIFICATION_INTERNAL_PHYSICS_PROCESS:
 			if (get_finger_index() != -1)
-				accum_t += get_process_delta_time();
+				accum_t += get_physics_process_delta_time();
 		break;
         case NOTIFICATION_DRAW: {
             Color color = Color(1,1,1);

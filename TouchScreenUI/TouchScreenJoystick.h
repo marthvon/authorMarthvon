@@ -49,7 +49,6 @@ private:
 	ShowMode show_mode = SHOW_ALL_ALWAYS;
 	bool stick_confined_inside = false; //keep clip content false
 	bool normal_moved_to_touch_pos = false;
-	bool monitor_speed = false;
 
 	Point2 _touch_pos_on_initial_press = Point2();
 	Point2 _current_touch_pos = Point2();
@@ -95,16 +94,18 @@ public:
 	void set_show_mode(const ShowMode p_show_mode);
 	ShowMode get_show_mode() const;
 
-	void set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos);
+	void toggle_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos);
 	bool is_normal_moved_to_touch_pos() const;
 
-	void set_stick_confined_inside(const bool p_confined_inside);
+	void toggle_stick_confined_inside(const bool p_confined_inside);
 	bool is_stick_confined_inside() const;
 
-	void set_monitor_speed(const bool p_monitor_speed);
-	bool is_monitor_speed() const;
+	void toggle_monitor_speed(const bool p_monitor_speed);
+	bool is_monitoring_speed() const;
 
 	real_t get_angle() const;
+	real_t get_rotation_speed() const;
+	Vector2 get_drag_speed() const;
 
 	TouchScreenJoystick();
 	~TouchScreenJoystick();
@@ -119,4 +120,10 @@ private:
 };
 
 VARIANT_ENUM_CAST(TouchScreenJoystick::ShowMode);
+
+/**
+	internal physics process delta time is used to monitor held time
+	should I give an option for either use that or use internal process delta time, instead?
+*/
+
 #endif

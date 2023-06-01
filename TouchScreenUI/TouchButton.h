@@ -22,19 +22,19 @@ protected:
 	void _notification(int p_what);
 	static void _bind_methods();
 public:
-	void set_action(StringName p_name);
+	void set_action(const StringName p_name);
 	StringName get_action() const;
 
-	void set_texture(Ref<Texture2D> p_texture);
+	void set_texture(const Ref<Texture2D> p_texture);
 	Ref<Texture2D> get_texture() const;
 
-	void set_pressed_texture(Ref<Texture2D> p_texture);
+	void set_pressed_texture(const Ref<Texture2D> p_texture);
 	Ref<Texture2D> get_pressed_texture() const;
 
-	void set_radius(real_t p_radius);
+	void set_radius(const real_t p_radius);
 	real_t get_radius() const;
 
-	void toggle_signal_release_inside(bool p_bool);
+	void toggle_signal_release_inside(const bool p_bool);
 	bool is_signal_release_inside() const;
 
 	void toggle_accumulate_time(const bool p_accumulate);
@@ -48,4 +48,10 @@ private:
 	void _release();
 	void _reset();
 };
+
+/**
+	internal physics process delta time is used to monitor held time
+	should I give an option for either use that or use internal process delta time, instead?
+*/
+
 #endif

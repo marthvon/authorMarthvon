@@ -133,19 +133,19 @@ void TouchButton::_bind_methods() {
     ADD_SIGNAL(MethodInfo("button_released_with_time_accum", PropertyInfo(Variant::FLOAT, "time")));
 }
 
-void TouchButton::set_action(StringName p_name) {
+void TouchButton::set_action(const StringName p_name) {
     action = p_name;
 }
 StringName TouchButton::get_action() const {
     return action;
 }
-void TouchButton::set_texture(Ref<Texture2D> p_texture){
+void TouchButton::set_texture(const Ref<Texture2D> p_texture){
     normal = p_texture;
 }
 Ref<Texture2D> TouchButton::get_texture() const{
     return normal;
 }
-void TouchButton::set_pressed_texture(Ref<Texture2D> p_texture){
+void TouchButton::set_pressed_texture(const Ref<Texture2D> p_texture){
     pressed = p_texture;
 }
 Ref<Texture2D> TouchButton::get_pressed_texture() const {

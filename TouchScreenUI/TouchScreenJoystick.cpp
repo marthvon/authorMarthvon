@@ -68,7 +68,7 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 			_current_touch_pos = Point2(0, 0);
 			if (speed_data) {
 				emit_signal("direction_changed_with_speed", -1, get_direction(), speed_data->_drag_speed);
-				emit_signal("angle_with_rotation_speed", -1, get_angle(), speed_data->_rotation_speed);
+				emit_signal("angle_changed_with_rotation_speed", -1, get_angle(), speed_data->_rotation_speed);
 				emit_signal("direction_and_angle_with_speed", -1, get_direction(), speed_data->_drag_speed, get_angle(), speed_data->_rotation_speed);
 
 				speed_data->_prev_touch_pos = Point2(0, 0);
@@ -145,7 +145,7 @@ void TouchScreenJoystick::_notification(int p_what) {
 		{
 			const double delta = get_physics_process_delta_time();
 			emit_signal("direction_changed_with_speed", get_finger_index(), get_direction(), speed_data->update_drag_speed(_current_touch_pos, delta));
-			emit_signal("angle_with_rotation_speed", get_finger_index(), get_angle(), speed_data->update_rotation_speed(_current_touch_pos, delta));
+			emit_signal("angle_changed_with_rotation_speed", get_finger_index(), get_angle(), speed_data->update_rotation_speed(_current_touch_pos, delta));
 			emit_signal("direction_and_angle_with_speed", get_finger_index(), get_direction(), speed_data->_drag_speed, get_angle(), speed_data->_rotation_speed);
 			speed_data->_prev_touch_pos = _current_touch_pos;
 		} break;
@@ -213,6 +213,16 @@ void TouchScreenJoystick::Data::TextureData::_update_texture_cache(const Size2 p
 real_t TouchScreenJoystick::get_angle() const {
 	return _current_touch_pos.angle();
 }
+real_t TouchScreenJoystick::get_rotation_speed() const {
+	if (speed_data)
+		return speed_data->_rotation_speed;
+	return 0;
+}
+Vector2 TouchScreenJoystick::get_drag_speed() const {
+	if (speed_data)
+		return speed_data->_drag_speed;
+	return Vector2();
+}
 
 void TouchScreenJoystick::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("set_texture", "texture"), &TouchScreenJoystick::set_texture);
@@ -236,14 +246,16 @@ void TouchScreenJoystick::_bind_methods(){
 	ClassDB::bind_method(D_METHOD("set_radius", "radius"), &TouchScreenJoystick::set_radius);
 	ClassDB::bind_method(D_METHOD("get_radius"), &TouchScreenJoystick::get_radius);
 
-	ClassDB::bind_method(D_METHOD("set_normal_moved_to_touch_pos", "move"), &TouchScreenJoystick::set_normal_moved_to_touch_pos);
+	ClassDB::bind_method(D_METHOD("toggle_normal_moved_to_touch_pos", "move"), &TouchScreenJoystick::toggle_normal_moved_to_touch_pos);
 	ClassDB::bind_method(D_METHOD("is_normal_moved_to_touch_pos"), &TouchScreenJoystick::is_normal_moved_to_touch_pos);
 
-	ClassDB::bind_method(D_METHOD("set_stick_confined_inside", "confined_inside"), &TouchScreenJoystick::set_stick_confined_inside);
+	ClassDB::bind_method(D_METHOD("toggle_stick_confined_inside", "confined_inside"), &TouchScreenJoystick::toggle_stick_confined_inside);
 	ClassDB::bind_method(D_METHOD("is_stick_confined_inside"), &TouchScreenJoystick::is_stick_confined_inside);
 
-	ClassDB::bind_method(D_METHOD("set_monitor_speed", "monitor"), &TouchScreenJoystick::set_monitor_speed);
-	ClassDB::bind_method(D_METHOD("is_monitor_speed"), &TouchScreenJoystick::is_monitor_speed);
+	ClassDB::bind_method(D_METHOD("toggle_monitor_speed", "monitor"), &TouchScreenJoystick::toggle_monitor_speed);
+	ClassDB::bind_method(D_METHOD("is_monitoring_speed"), &TouchScreenJoystick::is_monitoring_speed);
+
+	ClassDB::bind_method(D_METHOD("get_angle"), &TouchScreenJoystick::get_angle);
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "show mode", PROPERTY_HINT_ENUM, "Show Stick On Touch,Show Stick & Normal On Touch,Show Stick When Inactive,Show All Always"), "set_show_mode", "get_show_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius"), "set_radius", "get_radius");
@@ -299,21 +311,20 @@ TouchScreenJoystick::ShowMode TouchScreenJoystick::get_show_mode() const {
 	return show_mode;
 }
 
-void TouchScreenJoystick::set_monitor_speed(const bool p_monitor_speed) {
+void TouchScreenJoystick::toggle_monitor_speed(const bool p_monitor_speed) {
 	set_physics_process_internal(p_monitor_speed);
-	if (p_monitor_speed && speed_data == nullptr)
+	if (p_monitor_speed && speed_data == nullptr) {
 		speed_data = new TouchScreenJoystick::SpeedMonitorData();
-	else {
-		delete speed_data;
-		speed_data = nullptr;
+		return;
 	}
-	monitor_speed = p_monitor_speed;
+	delete speed_data;
+	speed_data = nullptr;
 }
-bool TouchScreenJoystick::is_monitor_speed() const {
-	return monitor_speed;
+bool TouchScreenJoystick::is_monitoring_speed() const {
+	return speed_data;
 }
 
-void TouchScreenJoystick::set_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos) {
+void TouchScreenJoystick::toggle_normal_moved_to_touch_pos(const bool p_move_normal_to_touch_pos) {
 	normal_moved_to_touch_pos = p_move_normal_to_touch_pos;
 	_update_cache_dirty();
 	if (get_finger_index() != -1) 
@@ -336,7 +347,7 @@ real_t TouchScreenJoystick::get_radius() const {
 	return radius;
 }
 
-void TouchScreenJoystick::set_stick_confined_inside(const bool p_confined_inside) {
+void TouchScreenJoystick::toggle_stick_confined_inside(const bool p_confined_inside) {
 	stick_confined_inside = p_confined_inside;
 	_update_cache_dirty();
 	if(!stick_confined_inside)

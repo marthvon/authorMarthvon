@@ -1,91 +1,73 @@
-#ifndef CHARACTER_2D
-#define CHARACTER_2D
+#ifndef CHARACTER_2D_SIDE_SCROLLER
+#define CHARACTER_2D_SIDE_SCROLLER
 
 #include "scene/2d/physics_body_2d.h"
+#include "GroundedMovementData1D.h"
+#include "MovementData2D.h"
 
 class Character2DSideScroller : public CharacterBody2D {
 	GDCLASS(Character2DSideScroller, CharacterBody2D);
 
 public:
 	enum class State {
-		STATE_IDLE = -1,
-		STATE_RUNNING,
-		STATE_WALKING,
-		STATE_CRAWLING,
-		STATE_JUMPING,
-		STATE_FALLING,
-		MAX_BUILT_IN_STATES
+		STATE_IDLE = 1,
+		//Grounded Movement States
+		STATE_RUNNING = (1 << 1),
+		STATE_WALKING = (2 << 1),
+		STATE_CRAWLING = (3 << 1),
+		//Jumping Movement States
+		STATE_FALLING = (1 << 5),
+		//Combine enums bits with OR operator --- ex. STATE_X | STATE_Y, then label as TRANSITION_FROM_X_TO_Y
+		//	--- ex. STATE_X | STATE_Y | REVERSE_TRANSITION_BIT_FLAG, then label as TRANSITION_FROM_Y_TO_X
+		REVERSE_TRANSITION_BIT_FLAG = (1 << 9)
+		//Custom States starting from bit flag (1 << 10) == 1024
 	};
 
 private:
-	NodePath character_object = NodePath();
+	NodePath character_path = NodePath();
+	bool isFacingRight = true;
 
-	Vector2 _snap_vector = Vector2(0, -1);
-	Vector2 velocity = Vector2(0, 0);
-	State state = State::STATE_IDLE;
+	unsigned short state = (unsigned short)State::STATE_IDLE;
 	bool disable_movement = false;
 
-	real_t initial_jump_velocity = 0;
-	real_t jump_duration = 0;
-	real_t jump_height = 0;
-	unsigned short max_jump_count = 1;
+	Vector<Ref<GroundedMovementData1D>> states_grounded_movement_data;
+	Vector<Ref<MovementData2D>> states_jumping_movement_data;
 
-	real_t gravity = 0;
-	real_t air_drag = 0;
-	real_t air_directional_speed = 0;
-
-	real_t running_speed = 0;
-	real_t walking_speed = 0;
-	real_t crawling_speed = 0;
-
-	//try implement this
-	//real_t speed[3] = {0,0,0};
-	//real_t max_speed[3] = {0,0,0};
-	//real_t acceleration[3] = {0,0,0};
-
-	real_t max_speed = 0;
-	real_t acceleration = 0;
+	uint8_t max_jump_count = 1;
 	real_t friction = 0;
-protected:
 
+protected:
 	void _notification(int p_notification);
 	static void _bind_methods();
 public:
+	void set_grounded_movement_data(const Array& p_list);
+	Array get_grounded_movement_data() const;
+	void set_jumping_movement_data(const Array& p_list);
+	Array get_jumping_movement_data() const;
 	//
-	void set_jump_height(const real_t p_height);
-	real_t get_jump_height() const;
 	void set_max_jump_count(const unsigned short int p_count);
 	int get_max_jump_count() const;
-	void set_jump_duration(const real_t p_duration);
-	real_t get_jump_duration() const;
-	real_t get_initial_jump_velocity() const;
-	//
-	void set_gravity(const real_t p_gravity);
-	real_t get_gravity() const;
-	void set_air_directional_speed(const real_t p_speed);
-	real_t get_air_directional_speed() const;
-	void set_air_drag(const real_t p_air_drag);
-	real_t get_air_drag() const;
-	//
+	int get_jump_counter() const;
 	void set_friction(const real_t p_friction);
 	real_t get_friction() const;
-	void set_walking_speed(const real_t p_speed);
-	real_t get_walking_speed() const;
-	void set_crawling_speed(const real_t p_speed);
-	real_t get_crawling_speed() const;
-	void set_running_speed(const real_t p_speed);
-	real_t get_running_speed() const;
-	void set_acceleration(const real_t p_acceleration);
-	real_t get_acceleration() const;
-	void set_max_speed(const real_t p_max_speed);
-	real_t get_max_speed() const;
 	//
 	void toggle_movement_disable(const bool p_disable);
 	bool is_movement_disable() const;
-	//
-	void create_character_object();
+	void set_state(const unsigned short p_state);
+	int get_state() const;
+
+	void toggle_facing_right(const bool p_is_right);
+	bool is_facing_right() const;
+
+	void set_character_path(const NodePath p_path);
+	NodePath get_character_path() const;
 private:
-	void _update_jump_cache();
+	void _character_process(const double delta);
+
+	inline void transition(const uint8_t from_state, const uint8_t to_state, const bool reverse_transition, const double delta);
+	inline void _transitioning_states(const uint8_t from_state, const uint8_t to_state, const bool reverse_transition, const double delta);
+	inline void _transition_custom_states(const uint8_t state, const uint8_t custom_state, const bool reverse_transition, const double delta);
+	inline bool _call_script_instance(const String& p_method, const double delta);
 };
 
 #endif

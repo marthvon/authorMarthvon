@@ -87,9 +87,8 @@ void TouchScreenJoystick::input(const Ref<InputEvent>& p_event) {
 			_set_finger_index(sd->get_index());
 			_touch_pos_on_initial_press = get_size() * 0.5;
 			_update_direction_with_point(coord);
-		} else if (get_finger_index() == sd->get_index()) {//dragging dpad direction
+		} else if (get_finger_index() == sd->get_index()) //dragging dpad direction
 			_update_direction_with_point(coord);
-		}
 		queue_redraw();
 	}
 }
@@ -119,11 +118,11 @@ void TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 		_set_direction(temp);
 		_direction_changed();
 	}
-	emit_signal("angle_changed", p_point.angle());
+	emit_signal("angle_changed", get_finger_index(), p_point.angle());
 }
 
 Vector2 TouchScreenJoystick::SpeedMonitorData::update_drag_speed(const Point2 _current_touch_pos, const double delta) {
-	_drag_speed -= (_current_touch_pos - _prev_touch_pos) * 2.0  / delta;
+	_drag_speed += (((_current_touch_pos - _prev_touch_pos) / delta) - _drag_speed) * 2.0; //have to add damping factor
 	return _drag_speed;
 }
 real_t TouchScreenJoystick::SpeedMonitorData::update_rotation_speed(const Point2 _current_touch_pos, const double delta) {
@@ -133,7 +132,7 @@ real_t TouchScreenJoystick::SpeedMonitorData::update_rotation_speed(const Point2
 		Vector2(-1, 1): Vector2(1, 1)) : (_prev_touch_pos.y > 0 ? Vector2(-1, -1) : Vector2(1, -1))),
 		Vector2(0, 0));
 	temp.orthonormalize();
-	_rotation_speed -= (double)(temp.basis_xform(_current_touch_pos.normalized()).angle()) * 2.0 / delta ;
+	_rotation_speed += (((double)(temp.basis_xform(_current_touch_pos.normalized()).angle()) / delta) - _rotation_speed) * 2.0; //have to add damping factor
 	return _rotation_speed;
 }
 
@@ -259,8 +258,9 @@ void TouchScreenJoystick::_bind_methods(){
 
 	ADD_PROPERTY(PropertyInfo(Variant::INT, "show mode", PROPERTY_HINT_ENUM, "Show Stick On Touch,Show Stick & Normal On Touch,Show Stick When Inactive,Show All Always"), "set_show_mode", "get_show_mode");
 	ADD_PROPERTY(PropertyInfo(Variant::FLOAT, "radius"), "set_radius", "get_radius");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "move to touch pos"), "set_normal_moved_to_touch_pos", "is_normal_moved_to_touch_pos");
-	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "stick confined inside"), "set_stick_confined_inside", "is_stick_confined_inside");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "move to touch pos"), "toggle_normal_moved_to_touch_pos", "is_normal_moved_to_touch_pos");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "stick confined inside"), "toggle_stick_confined_inside", "is_stick_confined_inside");
+	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "monitor_speed"), "toggle_monitor_speed", "is_monitoring_speed");
 	ADD_GROUP("Normal", "normal_");
 	ADD_PROPERTY(PropertyInfo(Variant::OBJECT, "normal_texture", PROPERTY_HINT_RESOURCE_TYPE, "Texture2D"), "set_texture", "get_texture");
 	ADD_PROPERTY(PropertyInfo(Variant::VECTOR2, "normal_scale"), "set_texture_scale", "get_texture_scale");

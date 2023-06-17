@@ -124,9 +124,9 @@ void TouchScreenJoystick::_update_direction_with_point(Point2 p_point) {
 Vector2 TouchScreenJoystick::SpeedMonitorData::update_drag_speed(const Point2 _current_touch_pos, const double delta) {
 	const Vector2 displacement = (_current_touch_pos - _prev_touch_pos);
 	Vector2 temp = ((displacement / delta) - _drag_speed) * 2.0;
-	if ((_drag_speed.x > 0? displacement.x >= 0 : displacement.x <= 0) && (Math::abs(temp.x) > Math::abs(_drag_speed.x))) // prevent overdamping by adding a damping factor //problem: oscillates when displacement is zero
+	if ( (_drag_speed.x > 0? ((displacement.x >= 0) && ((_drag_speed.x + temp.x) < 0)) : ((displacement.x <= 0) && ((_drag_speed.x + temp.x) > 0))) ) // prevent overdamping by adding a damping factor //problem: oscillates when displacement is zero
 		temp /= Math_E;
-	if ((_drag_speed.y > 0? displacement.y >= 0 : displacement.y <= 0) && (Math::abs(temp.y) > Math::abs(_drag_speed.y))) // prevent overdamping by adding a damping factor //problem: oscillates when displacement is zero
+	if ( (_drag_speed.y > 0? ((displacement.y >= 0) && ((_drag_speed.y + temp.y) < 0)) : ((displacement.y <= 0) && ((_drag_speed.y + temp.y) > 0)))) // prevent overdamping by adding a damping factor //problem: oscillates when displacement is zero
 		temp /= Math_E;
 	_drag_speed += temp;
 	return _drag_speed.abs();
@@ -140,8 +140,8 @@ real_t TouchScreenJoystick::SpeedMonitorData::update_rotation_speed(const Point2
 	temp.orthonormalize();
 	const real_t delta_angle = (double)(temp.basis_xform_inv(_current_touch_pos.normalized()).angle());
 	real_t res = ((delta_angle / delta) - _rotation_speed) * 2.0; 
-	if ((_rotation_speed > 0 ? delta_angle >= 0 : delta_angle <= 0) && (Math::abs(res) > Math::abs(_rotation_speed)))
-		res /= 2.0; //have to add damping factor //problem: oscillates when displacement is zero
+	if ( (_rotation_speed > 0 ? (delta_angle >= 0 && (_rotation_speed + res) < 0) : (delta_angle <= 0 && (_rotation_speed + res) > 0)) )
+		res /= Math_E; //have to add damping factor //problem: oscillates when displacement is zero
 	_rotation_speed += res;
 	return Math::abs(_rotation_speed);
 }
